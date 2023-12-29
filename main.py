@@ -9,7 +9,7 @@ def connection(port,host):
         s.bind((host, port))
         s.listen()
 
-        print("ecoute sur : "+ str(host) + str(port))
+        print("ecoute sur : "+ str(host) +":"+ str(port))
 
         conn, addr = s.accept()
         with conn:
@@ -20,7 +20,7 @@ def connection(port,host):
                     break
                 print(f"Received from Rust: {data.decode()}")
 
-                message = input("Message : ")
+                message = input("Message :")
                 conn.sendall(message.encode())
 
                 if message == 'quitter':
@@ -31,9 +31,6 @@ def main():
 
     co = threading.Thread(target=connection, args=(PORT,HOST))
     co.start()
-
-    ##temp
-    co.join()
 
 if __name__ == "__main__":
     main()
