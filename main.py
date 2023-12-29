@@ -1,29 +1,39 @@
 import socket
+from env import *
+import threading
 
-def main():
-    host = "0.0.0.0"
-    port = 8080
+
+def connection(port,host):
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, port))
         s.listen()
 
-        print("Server listening on port 8080...")
+        print("ecoute sur : "+ str(PORT))
 
         conn, addr = s.accept()
         with conn:
-            print("Connected by", addr)
+            print("Connection de :::: ", addr)
             while True:
                 data = conn.recv(1024)
                 if not data:
                     break
                 print(f"Received from Rust: {data.decode()}")
 
-                message = input("Python Server: ")
+                message = input("Message : ")
                 conn.sendall(message.encode())
 
-                if message.lower() == 'quitter':
+                if message == 'quitter':
                     break
+
+
+def main():
+
+    co = threading.Thread(target=connection, args=(PORT,HOST))
+    co.start()
+
+    ##temp
+    co.join()
 
 if __name__ == "__main__":
     main()
