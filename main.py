@@ -9,7 +9,7 @@ def connection(port,host):
         s.bind((host, port))
         s.listen()
 
-        print("ecoute sur : "+ str(PORT))
+        print("ecoute sur : "+ str(host) + str(port))
 
         conn, addr = s.accept()
         with conn:
