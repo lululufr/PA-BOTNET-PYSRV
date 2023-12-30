@@ -9,17 +9,18 @@ def co():
         s.listen()
         print("ecoute sur : " + str(HOST) + ":" + str(PORT))
         conn, addr = s.accept()
-    return conn ,addr
+    return conn, addr
+
 
 def emission(conn, addr):
-        while True:
-            message = input("Message :")
-            conn.sendall(message.encode())
-            if message == 'quitter':
-                break
+    while True:
+        message = input("Message :")
+        conn.sendall(message.encode())
+        if message == 'quitter':
+            break
 
 
-def reception(conn,addr):
+def reception(conn, addr):
     print("Connection de :::: ", addr)
     while True:
         data = conn.recv(1024)
@@ -28,10 +29,11 @@ def reception(conn,addr):
         print(f" Client: {data.decode()}")
 
 
-
 def main():
-    thread_emission = threading.Thread(target=emission, args=co())
-    thread_reception = threading.Thread(target=reception, args=co())
+    conn, addr = co()
+
+    thread_emission = threading.Thread(target=emission, args=(conn, addr))
+    thread_reception = threading.Thread(target=reception, args=(conn, addr))
     thread_emission.start()
     thread_reception.start()
 
