@@ -3,34 +3,38 @@ from env import *
 import threading
 
 
-def connection(port,host):
-
+def co():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((host, port))
+        s.bind((HOST, PORT))
         s.listen()
-
-        print("ecoute sur : "+ str(host) +":"+ str(port))
-
+        print("ecoute sur : " + str(HOST) + ":" + str(PORT))
         conn, addr = s.accept()
-        with conn:
-            print("Connection de :::: ", addr)
-            while True:
-                data = conn.recv(1024)
-                if not data:
-                    break
-                print(f"Received from Rust: {data.decode()}")
+    return conn ,addr
 
-                message = input("Message :")
-                conn.sendall(message.encode())
+def emission(conn, addr):
+        while True:
+            message = input("Message :")
+            conn.sendall(message.encode())
+            if message == 'quitter':
+                break
 
-                if message == 'quitter':
-                    break
+
+def reception(conn,addr):
+    print("Connection de :::: ", addr)
+    while True:
+        data = conn.recv(1024)
+        if not data:
+            break
+        print(f" Client: {data.decode()}")
+
 
 
 def main():
+    thread_emission = threading.Thread(target=emission, args=co())
+    thread_reception = threading.Thread(target=reception, args=co())
+    thread_emission.start()
+    thread_reception.start()
 
-    co = threading.Thread(target=connection, args=(PORT,HOST))
-    co.start()
 
 if __name__ == "__main__":
     main()
