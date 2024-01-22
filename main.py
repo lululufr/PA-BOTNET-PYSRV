@@ -228,7 +228,7 @@ elif args.start:
 
         while running:
             # Création de la connexion
-            conn, addr = co("127.0.0.1", args.port)
+            conn, addr = co("0.0.0.0", args.port)
 
             thread_emission = threading.Thread(target=emission, args=(conn, addr))
             thread_reception = threading.Thread(target=reception, args=(conn, addr))
