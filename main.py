@@ -264,6 +264,7 @@ elif args.start:
         socket_server.listen()
         print("ecoute sur : " + str(host) + ":" + str(port))
 
+
         connection_list = [socket_server]
 
         # Database
