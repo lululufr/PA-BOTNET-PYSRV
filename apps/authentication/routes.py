@@ -9,7 +9,6 @@ from flask_login import (
     login_user,
     logout_user
 )
-from flask_dance.contrib.github import github
 
 from apps import db, login_manager
 from apps.authentication import blueprint
@@ -24,31 +23,20 @@ def route_default():
 
 # Login & Registration
 
-
 @blueprint.route('/login', methods=['GET', 'POST'])
 def login():
     login_form = LoginForm(request.form)
     if 'login' in request.form:
 
         # read form data
-        user_id  = request.form['username'] # we can have here username OR email
+        username = request.form['username']
         password = request.form['password']
 
         # Locate user
-        user = Users.find_by_username(user_id)
-
-        # if user not found
-        if not user:
-
-            user = Users.find_by_email(user_id)
-
-            if not user:
-                return render_template( 'accounts/login.html',
-                                        msg='Unknown User or Email',
-                                        form=login_form)
+        user = Users.query.filter_by(username=username).first()
 
         # Check the password
-        if verify_pass(password, user.password):
+        if user and verify_pass(password, user.password):
 
             login_user(user)
             return redirect(url_for('authentication_blueprint.route_default'))

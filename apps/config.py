@@ -15,17 +15,7 @@ class Config(object):
     # Set up the App SECRET_KEY
     SECRET_KEY  = os.getenv('SECRET_KEY', None)
     if not SECRET_KEY:
-        SECRET_KEY = ''.join(random.choice( string.ascii_lowercase  ) for i in range( 32 ))
-
-    # Social AUTH context
-    SOCIAL_AUTH_GITHUB  = False
-
-    GITHUB_ID      = os.getenv('GITHUB_ID'    , None)
-    GITHUB_SECRET  = os.getenv('GITHUB_SECRET', None)
-
-    # Enable/Disable Github Social Login    
-    if GITHUB_ID and GITHUB_SECRET:
-         SOCIAL_AUTH_GITHUB  = True        
+        SECRET_KEY = ''.join(random.choice( string.ascii_lowercase  ) for i in range( 32 ))     
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -75,6 +65,7 @@ class ProductionConfig(Config):
 
 class DebugConfig(Config):
     DEBUG = True
+
 
 # Load all possible configurations
 config_dict = {

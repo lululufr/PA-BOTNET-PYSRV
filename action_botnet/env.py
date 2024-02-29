@@ -1,7 +1,4 @@
-HOST = "0.0.0.0"
-PORT = 4242
-
-DB = "botnet"
-DBHOST = "51.77.193.65"
-DBUSER = "python"
-DBPASSWORD = "jesuislepython3"
+host = "51.77.193.65"
+user = "root"
+password = "jesuislepython3"
+database = "botnet"
