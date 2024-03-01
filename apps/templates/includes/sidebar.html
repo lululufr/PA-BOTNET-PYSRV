@@ -6,7 +6,7 @@
                 <div class="b-bg">
                     <i class="feather icon-trending-up"></i>
                 </div>
-                <span class="b-title">Datta Able</span>
+                <span class="b-title">BOTNET</span>
             </a>
             <a class="mobile-menu" id="mobile-collapse" href="javascript:"><span></span></a>
         </div>
@@ -24,39 +24,85 @@
                     class="nav-item {% if 'profile' in segment %} active {% endif %}">
                     <a href="/profile.html" class="nav-link">
                         <span class="pcoded-micon"><i class="feather icon-user"></i></span>
-                            <span class="pcoded-mtext">Profile Page</span></a>
-                </li>
-
-                <li data-username="Authentication Sign up Sign in reset password Change password Personal information profile settings map form subscribe"
-                    class="nav-item pcoded-hasmenu">
-                    <a href="javascript:" class="nav-link "><span class="pcoded-micon"><i class="feather icon-lock"></i></span><span
-                            class="pcoded-mtext">Authentication</span></a>
-                    <ul class="pcoded-submenu">
-                        <li class=""><a href="/register.html" class="" target="_blank">Sign UP</a></li>
-                        <li class=""><a href="/login.html" class="" target="_blank">Sign IN</a></li>
-                    </ul>
+                            <span class="pcoded-mtext">Utilisateurs</span></a>
                 </li>
 
                 <li data-username="Sample Page" class="nav-item"><a href="/page-blank.html" class="nav-link"><span
-                        class="pcoded-micon"><i class="feather icon-sidebar"></i></span><span class="pcoded-mtext">Sample page</span></a>
+                        class="pcoded-micon"><i class="feather icon-sidebar"></i></span><span class="pcoded-mtext">A venir</span></a>
                 </li>
 
-                <li data-username="Disabled Menu" class="nav-item">
-                    <a href="{{ url_for('authentication_blueprint.logout') }}" class="nav-link">
-                        <span class="pcoded-micon"><i class="feather icon-power"></i></span><span class="pcoded-mtext">Logout</span>
-                    </a>
-                </li>
+
+
+
+                <!-- BOT -->
+
                 <li class="nav-item pcoded-menu-caption">
                     <label>BOT</label>
-                </li>                    
+                </li>
+
+                <li data-username="Bot Page" class="nav-item ">
+                    <a href="/bot" class="nav-link">
+                        <span class="pcoded-micon">
+                            <i class="feather icon-headphones"></i>
+                        </span>
+                        <span class="pcoded-mtext">ON/OFF</span>
+                    </a>
+                </li>
+
+                <li data-username="Bot Page" class="nav-item ">
+                    <a href="/bot/list" class="nav-link">
+                        <span class="pcoded-micon">
+                            <i class="feather icon-headphones"></i>
+                        </span>
+                        <span class="pcoded-mtext">Liste</span>
+                    </a>
+                </li>
+
+                <li data-username="Bot Page" class="nav-item ">
+                    <a href="/bot/group" class="nav-link">
+                        <span class="pcoded-micon">
+                            <i class="feather icon-headphones"></i>
+                        </span>
+                        <span class="pcoded-mtext">Groupes</span>
+                    </a>
+                </li>
+
+
+                <li data-username="Bot Page" class="nav-item ">
+                    <a href="/bot/action" class="nav-link">
+                        <span class="pcoded-micon">
+                            <i class="feather icon-headphones"></i>
+                        </span>
+                        <span class="pcoded-mtext">Action</span>
+                    </a>
+                </li>
+
                 <li data-username="Bot Page" class="nav-item ">
                     <a target="_blank" href="/bot" class="nav-link">
                         <span class="pcoded-micon">
                             <i class="feather icon-headphones"></i>
                         </span>
-                        <span class="pcoded-mtext">Gestion</span>
+                        <span class="pcoded-mtext">a venir </span>
                     </a>
-                </li>                
+                </li>
+
+
+                <li class="nav-item pcoded-menu-caption">
+                    <label>Generator</label>
+                </li>
+
+
+                <li data-username="Authentication Sign up Sign in reset password Change password Personal information profile settings map form subscribe"
+                    class="nav-item pcoded-hasmenu">
+                    <a href="javascript:" class="nav-link "><span class="pcoded-micon"><i class="feather icon-lock"></i></span><span
+                            class="pcoded-mtext">Botnet</span></a>
+                    <ul class="pcoded-submenu">
+                        <li class=""><a href="/generator/gen" >Generate</a></li>
+                        <li class=""><a href="/generator/modify">Modify</a></li>
+                    </ul>
+                </li>
+
+
             </ul>
         </div>
     </div>

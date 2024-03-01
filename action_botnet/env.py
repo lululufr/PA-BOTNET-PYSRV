@@ -1,4 +1,4 @@
-host = "51.77.193.65"
-user = "root"
-password = "jesuislepython3"
-database = "botnet"
+DBHOST = "51.77.193.65"
+DBUSER = "root"
+DBPASSWORD = "jesuislepython3"
+DB = "botnet"
