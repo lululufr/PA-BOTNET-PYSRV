@@ -18,41 +18,36 @@
 
 
                     <table class="table">
-  <thead>
-    <tr>
-      <th scope="col">#</th>
-      <th scope="col">First</th>
-      <th scope="col">Last</th>
-      <th scope="col">Handle</th>
-      <th scope="col">Handle</th>
-    </tr>
-  </thead>
-  <tbody>
+                      <thead>
+                        <tr>
+                          <th scope="col">id</th>
+                          <th scope="col">nom</th>
+                          <th scope="col">ip publique</th>
+                          <th scope="col">ip prive</th>
+                          <th scope="col">Status</th>
+                          <th scope="col">Action</th>
 
-  <!-- bouclage -->
+                        </tr>
+                      </thead>
+                      <tbody>
 
-    <tr>
-      <th scope="row">1</th>
-      <td>Mark</td>
-      <td>Otto</td>
-      <td><a type="submit" class="btn btn-primary" title="btn btn-primary" data-toggle="voir">Voir</a></td>
-      <td><a type="button" class="btn btn-outline-danger">supp</a></td>
-    </tr>
-
-    <!-- bouclage -->
-
-
-      <tr>
-      <th scope="row">2</th>
-      <td>Mafffrk</td>
-      <td>Ottfffo</td>
-      <td><a type="submit" class="btn btn-primary" title="btn btn-primary" data-toggle="tooltip">Voir</a></td>
-      <td><a type="button" class="btn btn-outline-danger">supp</a></td>
-    </tr>
+                      <!-- bouclage -->
+                      {% for bot in bots %}
+                            <tr>
+                              <th scope="row">{{bot.id}}</th>
+                              <td>{{bot.nom}}</td>
+                              <td>{{bot.ip_public}}</td>
+                                <td>{{bot.ip_prive}}</td>
+                                <td>{{bot.statut}}</td>
+                              <td><a type="submit" class="btn btn-primary" title="btn btn-primary" data-toggle="voir">Voir</a>
+                              <a type="button" class="btn btn-outline-danger">supp</a></td>
+                            </tr>
+                      {% endfor %}
+                        <!-- bouclage -->
 
 
-  </tbody>
-</table>
+                  </tbody>
+                </table>
 
 
 

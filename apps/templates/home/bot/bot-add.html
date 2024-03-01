@@ -1,0 +1,61 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Dashboard {% endblock %}
+
+<!-- Specific CSS goes HERE -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+   <!-- [ Main Content ] start -->
+    <div class="pcoded-main-container">
+        <div class="pcoded-wrapper">
+
+            <div class="pcoded-content">
+                <div class="pcoded-inner-content">
+                    <!-- [ breadcrumb ] start -->
+
+                    <div class="container text-center">
+                        <div class="row row-cols-2 row-cols-lg-5 g-2 g-lg-3">
+
+
+
+                            <form action="/bot/add" method="POST">
+
+                                <div class="input-group mb-3">
+                                  <span class="input-group-text" >name</span>
+                                  <input type="text" class="form-control" placeholder="bot_sur_pc_de_Yannis" aria-label="name" aria-describedby="basic-addon1" name="name">
+                                </div>
+                                <div class="input-group mb-3">
+                                  <span class="input-group-text">ip_priv</span>
+                                  <input type="text" class="form-control" placeholder="109.25.26.22" aria-label="name" aria-describedby="basic-addon1" name="ip_priv">
+                                </div>
+                                <div class="input-group mb-3">
+                                  <span class="input-group-text">ip_pub</span>
+                                  <input type="text" class="form-control" placeholder="192.168.1.2" aria-label="name" aria-describedby="basic-addon1" name="ip_pub">
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">Créer</button>
+
+                            </form>
+
+
+
+
+                        </div>
+                    </div>
+
+
+                    <!-- [ breadcrumb ] end -->
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!-- [ Main Content ] end -->
+
+{% endblock content %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}{% endblock javascripts %}
