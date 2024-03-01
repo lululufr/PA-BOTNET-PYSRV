@@ -12,7 +12,7 @@ class Running(db.Model):
     __tablename__ = 'running'
 
     id = db.Column(db.Integer, primary_key=True)
-    running = db.Column(db.INTEGER)
+    running = db.Column(db.INTEGER, default=0)
 
 
 class Bots(db.Model):

