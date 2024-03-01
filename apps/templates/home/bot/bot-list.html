@@ -15,17 +15,19 @@
                     <!-- [ breadcrumb ] start -->
 
 
-
-
                     <table class="table">
                       <thead>
                         <tr>
                           <th scope="col">id</th>
-                          <th scope="col">nom</th>
-                          <th scope="col">ip publique</th>
-                          <th scope="col">ip prive</th>
-                          <th scope="col">Status</th>
-                          <th scope="col">Action</th>
+                          <th scope="col">uid</th>
+                          <th scope="col">groupe id</th>
+                          <th scope="col">Stealth</th>
+                          <th scope="col">Multitread</th>
+                          <th scope="col">ip</th>
+                          <th scope="col">sym_key</th>
+                          <th scope="col">pub_key</th>
+                          <th scope="col">status</th>
+                          <th scope="col">action</th>
 
                         </tr>
                       </thead>
@@ -35,12 +37,18 @@
                       {% for bot in bots %}
                             <tr>
                               <th scope="row">{{bot.id}}</th>
-                              <td>{{bot.nom}}</td>
-                              <td>{{bot.ip_public}}</td>
-                                <td>{{bot.ip_prive}}</td>
-                                <td>{{bot.statut}}</td>
-                              <td><a type="submit" class="btn btn-primary" title="btn btn-primary" data-toggle="voir">Voir</a>
-                              <a type="button" class="btn btn-outline-danger">supp</a></td>
+                              <td>{{bot.uid}}</td>
+                              <td>{{bot.group_id}}</td>
+                              <td>{{bot.stealth}}</td>
+                              <td>{{bot.multi_thread}}</td>
+                              <td>{{bot.ip}}</td>
+                              <td>{{bot.sym_key}}</td>
+                                <td>{{bot.pub_key}}</td>
+                                <td>{{bot.status}}</td>
+                              <td>
+                                  <a type="submit" class="btn btn-primary" title="btn btn-primary" data-toggle="voir">Voir</a>
+                                  <a type="button" class="btn btn-outline-danger">supp</a>
+                              </td>
                             </tr>
                       {% endfor %}
                         <!-- bouclage -->

