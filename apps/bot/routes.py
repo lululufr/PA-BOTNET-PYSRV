@@ -23,7 +23,6 @@ def bot_launch():
 
         thread_lancement = threading.Thread(target=launch.start_botnet)
 
-
         try :
 
             print("lancement botnet")
