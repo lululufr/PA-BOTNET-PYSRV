@@ -5,13 +5,10 @@ Copyright (c) 2019 - present AppSeed.us
 
 from apps.bot import blueprint
 from flask import render_template, request
-from flask_login import login_required
-from jinja2 import TemplateNotFound
 import threading
-from queue import Queue, Empty
 
 from action_botnet import launch
-from apps.bot.models import Bots, Running
+from apps.bot.models import Bots
 from apps import db
 
 @blueprint.route('/bot')
@@ -24,44 +21,21 @@ def bot_launch():
         output = request.form.to_dict()
         name = output['name']
 
-        queue_web = Queue()
-        thread_lancement = threading.Thread(target=launch.start_botnet, args=(name, queue_web))
+        thread_lancement = threading.Thread(target=launch.start_botnet)
+
 
         try :
-            try:
-                running = Running.query.filter_by(id=1).first()
-                print("recherche running")
-                state = running.running
 
-            except :
-                print("Nouveau lancement initialisation de la base de données")
-                new_running = Running(running=0)
-                db.session.add(new_running)
-                db.session.commit()
-
-
-            if state == 1 :
-                print("botnet deja en cours de fonctionnement")
-                queue_web.put('stop')
-                print("Eteindre botnet")
-                running.running = 0
-                db.session.commit()
-                thread_lancement.join()
-                up = False
-
-            if state == 0 :
-                print("lancement botnet")
-                thread_lancement.start()
-                running.running = 1
-                db.session.commit()
-                up = True
+            print("lancement botnet")
+            thread_lancement.start()
+            #launch.start_botnet(4242)
 
             print("fin")
-            return render_template('home/bot/bot.html', segment='bot', name=up)
+            return render_template('home/bot/bot.html', segment='bot', name="lancement")
             ##launch.start_botnet(name, queue_web)
 
         except :
-            return render_template('home/bot/bot.html', segment='bot', name=0)
+            return render_template('home/bot/bot.html', segment='bot', name="erreur")
 
         #return render_template('home/bot/bot.html', segment='bot', name=name)
 
