@@ -822,7 +822,6 @@ elif args.start:
 
                     # Récupération de la clé publique du client
                     public_key = rsa.PublicKey.load_pkcs1_openssl_pem(reception_queue.get())
-                    # print("public key : " + str(public_key))
 
                     # Génération de la clé symétrique
                     sym_key = get_random_bytes(16)
@@ -844,7 +843,6 @@ elif args.start:
 
                     cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
                     pt = unpad(cipher.decrypt(received_data), AES.block_size).decode('utf-8')
-                    # print("received data : " + str(pt))
 
                     # Récupération de l'uid client
                     uid = json.loads(pt)["uid"]
