@@ -767,8 +767,8 @@ elif args.start:
         clients = []
 
         # Socket
-        host = "127.0.0.1"
-        port = args.port
+        host = HOST
+        port = PORT
 
         socket_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         socket_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
