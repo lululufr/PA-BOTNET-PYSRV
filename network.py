@@ -35,4 +35,5 @@ def reception(queue, conn, addr):
             running = False
             print("stopping reception thread on ip " + str(addr))
         else:
+            queue.put(data)
             print("data received from " + str(addr))

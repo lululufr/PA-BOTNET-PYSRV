@@ -642,7 +642,7 @@ elif args.start:
 
         # Socket
         host = HOST
-        port = PORT
+        port = args.port
 
         socket_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         socket_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
