@@ -8,7 +8,6 @@ import base64
 import mysql.connector
 import sys
 import rsa
-
 import json
 from base64 import b64encode
 from Crypto.Cipher import AES
