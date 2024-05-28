@@ -394,6 +394,7 @@ CREATE TABLE `victims` (
   `pub_key` varchar(255) DEFAULT NULL,
   `stealth` tinyint(1) NOT NULL,
   `multi_thread` tinyint(1) NOT NULL,
+  `os` varchar(10) NOT NULL,
   `updated` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -409,7 +410,7 @@ CREATE TABLE `victims` (
 LOCK TABLES `victims` WRITE;
 /*!40000 ALTER TABLE `victims` DISABLE KEYS */;
 INSERT INTO `victims` VALUES
-(1,'d5f52ca4fc1d449680f117501ff4a674','127.0.0.1','RkXwBpSlp7QRSU8+xfalbQ==','dGVzdHVwZGF0ZWQ=',1,1,0,NULL,NULL);
+(1,'d5f52ca4fc1d449680f117501ff4a674','127.0.0.1','RkXwBpSlp7QRSU8+xfalbQ==','dGVzdHVwZGF0ZWQ=',1,1,"linux",0,NULL,NULL);
 /*!40000 ALTER TABLE `victims` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
