@@ -1,5 +1,4 @@
-HOST = "0.0.0.0"
 DB = "botnet"
 DBHOST = "localhost"
-DBUSER = "python"
-DBPASSWORD = "jesuislepython3"
+DBUSER = "root"
+DBPASSWORD = "root"

