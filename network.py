@@ -22,9 +22,9 @@ def emission(queue, conn, addr):
         if message == 'stop-thread':
             running = False
             print("stopping emission thread on ip " + str(addr))
-        else:
+        else:                
             conn.sendall(message)
-            print("data sent to " + str(addr))
+            # print("data sent to " + str(addr))
 
 def reception(queue, conn, addr):
     # Gestion de la réception des messages
