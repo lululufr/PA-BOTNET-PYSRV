@@ -106,6 +106,8 @@ def start_server(port):
                 uid = json.loads(pt)["uid"]
                 client_os = json.loads(pt)["os"]
 
+                print("\t(+) uid : " + str(uid))
+
 
                 # Ajout de la victime en base de données
                 add_victim_to_db(db, mycursor, uid, client_os, addr[0], sym_key, "testupdated")
