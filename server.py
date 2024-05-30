@@ -239,6 +239,8 @@ def start_server(port):
                     values = (attack[0], )
 
                     mycursor.execute(query, values)
+
+                    db.commit()
             
         #######################
             

