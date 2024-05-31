@@ -1,4 +1,4 @@
 DB = "botnet"
 DBHOST = "localhost"
 DBUSER = "root"
-DBPASSWORD = "mariadb123"
+DBPASSWORD = "jesuislepython3"

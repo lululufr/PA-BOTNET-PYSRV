@@ -1,3 +1,5 @@
+import time
+
 import mysql.connector
 from env import *
 
@@ -85,6 +87,7 @@ def get_victim_attacks(mycursor):
 
     mycursor.execute(query)
     attacks = mycursor.fetchall()
+
 
     return attacks
 
