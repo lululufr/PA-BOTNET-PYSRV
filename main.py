@@ -17,6 +17,7 @@ from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
 from queue import Queue, Empty
+from datetime import datetime
 
 # Arguments
 # -h, --help            montre le message d'aide
@@ -297,9 +298,14 @@ elif args.showall:
 
     if len(result) == 0:
         print("Aucun résultat")
-    else :
+    else:
         for line in result:
-            print(line)
+            # Formater les objets datetime pour correspondre au format de la base de données
+            formatted_line = [
+                item.strftime('%Y-%m-%d %H:%M:%S') if isinstance(item, datetime) else item 
+                for item in line
+            ]
+            print(tuple(formatted_line))
 
 
 ############################################################
