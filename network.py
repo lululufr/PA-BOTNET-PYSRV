@@ -36,6 +36,7 @@ def emission(queue, conn, addr, sym_key, iv):
 
             # Récupération de la taille de la donnée à envoyer
             data_size = len(enc_data)
+            # print("data size to send: " + str(data_size))
 
             # Chiffrer la taille de la donnée à envoyer
             cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
@@ -44,7 +45,6 @@ def emission(queue, conn, addr, sym_key, iv):
             conn.sendall(enc_data_size)
 
             conn.sendall(enc_data)
-            # print("data sent to " + str(addr))
 
 
 
@@ -80,6 +80,7 @@ def reception(queue, conn, addr, sym_key, iv):
                 else:
                     queue.put(data)
                     print(str(len(data)) + " bytes received from " + str(addr))
+                    print("data received : " + str(data))
 
 
         except BlockingIOError:
