@@ -61,7 +61,7 @@ action_group.add_argument("--record", action="store_true", help="lance un enregi
 action_group.add_argument("--keylogger", action="store_true", help="lance un keylogger sur un ordinateur")
 
 # SQL request
-action_group.add_argument("--showall", action="store_true", help="Récupre toutes les informations d'une table donnée")
+action_group.add_argument("--showall", action="store_true", help="Récupère toutes les informations d'une table donnée")
 parser.add_argument("--target", type=str, help="table à afficher")
 parser.add_argument("--param", type=str, help="condition de la requête")
 parser.add_argument("--value", type=str, help="valeur de la condition")
