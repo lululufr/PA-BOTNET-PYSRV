@@ -25,11 +25,12 @@ def emission(queue, conn, addr, sym_key, iv):
     running = True
     while running:
         data = queue.get()
-        if data == b'stop-thread\n':
-            running = False
-            print("stopping emission thread on ip " + str(addr))
-        else:                
 
+        if data == b'stop-thread':
+            running = False
+            # print("stopping emission thread on ip " + str(addr))
+
+        else:                
             # Chiffrer la donnée à envoyer
             cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
             enc_data = cipher.encrypt(pad(data, AES.block_size))
@@ -59,7 +60,9 @@ def reception(queue, conn, addr, sym_key, iv):
 
             if not enc_data_size:
                 running = False
-                print("stopping reception thread on ip " + str(addr))
+                # print("stopping reception thread on ip " + str(addr))
+                queue.put(b'disconnected')
+            
             else:
 
                 # Déchiffrement de la taille de la donnée à recevoir
