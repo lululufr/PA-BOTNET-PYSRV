@@ -1,3 +1,6 @@
+server.py :
+
+
 import argparse
 import os
 import mysql.connector
@@ -224,6 +227,9 @@ def start_server(port):
                 # Check si le client s'est deconnecté
                 if client_data == b'disconnected':
                     print("[-] client disconnected " + str(client['addr']))
+
+                    # Mise à jour du statut dans la base de données
+                    update_status(db, mycursor, client['uid'])
 
                     # Arrêt du thread d'émission
                     client['emission_queue'].put(b"stop-thread")
