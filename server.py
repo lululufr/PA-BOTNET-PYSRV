@@ -1,6 +1,3 @@
-server.py :
-
-
 import argparse
 import os
 import mysql.connector

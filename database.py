@@ -1,5 +1,3 @@
-database.py :
-
 import mysql.connector
 from env import *
 
