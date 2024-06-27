@@ -1,3 +1,5 @@
+network.py :
+
 import socket
 import threading
 from queue import Queue
@@ -59,12 +61,11 @@ def reception(queue, conn, addr, sym_key, iv):
             enc_data_size = conn.recv(16)
 
             if not enc_data_size:
+                print("Connection closed by client: " + str(addr))
                 running = False
-                # print("stopping reception thread on ip " + str(addr))
-                queue.put(b'disconnected')
-            
-            else:
+                queue.put(b'disconnected')  # Signaler la déconnexion au système
 
+            else:
                 # Déchiffrement de la taille de la donnée à recevoir
                 cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
                 data_size = unpad(cipher.decrypt(enc_data_size), AES.block_size).decode('utf-8')
@@ -78,13 +79,21 @@ def reception(queue, conn, addr, sym_key, iv):
 
                 # Analyser le message reçu pour stopper le thread
                 if data == 'stop-thread':
-                    running = False
                     print("stopping reception thread on ip " + str(addr))
+                    running = False
                 else:
                     queue.put(data)
                     print(str(len(data)) + " bytes received from " + str(addr))
                     print("data received : " + str(data))
 
+        except (ConnectionResetError, ConnectionAbortedError) as e:
+            print("Connection error with " + str(addr) + ": " + str(e))
+            running = False
+            queue.put(b'disconnected')  # Signaler la déconnexion au système
 
-        except BlockingIOError:
-            continue  # Continue l'écoute si aucune donnée n'est disponible
+        except Exception as e:
+            print("Unexpected error: " + str(e))
+            running = False
+            queue.put(b'disconnected')  # Utiliser pour signaler une déconnexion inattendue
+
+
