@@ -1,3 +1,4 @@
+import time
 import socket
 import threading
 from queue import Queue
@@ -67,10 +68,21 @@ def reception(queue, conn, addr, sym_key, iv):
 
                 # Déchiffrement de la taille de la donnée à recevoir
                 cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
-                data_size = unpad(cipher.decrypt(enc_data_size), AES.block_size).decode('utf-8')
+                data_size = int(unpad(cipher.decrypt(enc_data_size), AES.block_size).decode('utf-8'))
 
                 # Reception de la donnée
-                enc_data = conn.recv(int(data_size))
+                print("[+] data size to receive: " + str(data_size))
+
+                received_data = 0
+                enc_data = b''
+
+                while received_data < data_size:
+                    enc_data += conn.recv(data_size - received_data)
+                    received_data = len(enc_data)
+                    
+                
+                print("size data received : " + str(len(enc_data)))
+
 
                 # Déchiffrement de la donnée reçue
                 cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
@@ -83,7 +95,10 @@ def reception(queue, conn, addr, sym_key, iv):
                 else:
                     queue.put(data)
                     print(str(len(data)) + " bytes received from " + str(addr))
-                    print("data received : " + str(data))
+
+                    with open("received_data.txt", "wb") as f:
+                        f.write(data)
+                    # print("data received : " + str(data))
 
 
         except BlockingIOError:
