@@ -744,13 +744,13 @@ elif args.start:
         logger.error("--start nécessite l'argument --port compris entre 1023 et 65535")
         parser.error("--start nécessite l'argument --port compris entre 1023 et 65535")
     else:
-        try:
+        # try:
             start_server(args.port, logger)
             print("démarrage du serveur sur le port " + str(args.port))
             logger.info("démarrage du serveur sur le port " + str(args.port))
-        except:
-            logger.error("Erreur lors du démarrage du serveur sur le port " + str(args.port))
-            print("Erreur lors du démarrage du serveur sur le port " + str(args.port))
+        # except:
+        #     logger.error("Erreur lors du démarrage du serveur sur le port " + str(args.port))
+        #     print("Erreur lors du démarrage du serveur sur le port " + str(args.port))
 else :
     parser.error("no action specified. Use -h/--help for help")
 db.commit()

