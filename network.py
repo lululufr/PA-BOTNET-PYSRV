@@ -52,7 +52,7 @@ def emission(queue, conn, addr, sym_key, iv):
 
 
 
-def reception(queue, conn, addr, sym_key, iv):
+def reception(queue, conn, addr, sym_key, iv, logger):
     running = True
     while running:
         try:
@@ -61,6 +61,7 @@ def reception(queue, conn, addr, sym_key, iv):
 
             if not enc_data_size:
                 print("Connection closed by client: " + str(addr))
+                logger.info("Connection closed by client: " + str(addr))
                 running = False
                 queue.put(b'disconnected')  # Signaler la déconnexion au système
 
@@ -71,6 +72,7 @@ def reception(queue, conn, addr, sym_key, iv):
 
                 # Reception de la donnée
                 print("[+] data size to receive: " + str(data_size))
+                logger.info("[+] data size to receive: " + str(data_size))
 
                 received_data = 0
                 enc_data = b''
@@ -81,6 +83,7 @@ def reception(queue, conn, addr, sym_key, iv):
                     
                 
                 print("size data received : " + str(len(enc_data)))
+                logger.info("size data received : " + str(len(enc_data)))
 
 
                 # Déchiffrement de la donnée reçue
@@ -90,10 +93,12 @@ def reception(queue, conn, addr, sym_key, iv):
                 # Analyser le message reçu pour stopper le thread
                 if data == 'stop-thread':
                     print("stopping reception thread on ip " + str(addr))
+                    logger.info("stopping reception thread on ip " + str(addr))
                     running = False
                 else:
                     queue.put(data)
                     print(str(len(data)) + " bytes received from " + str(addr))
+                    logger.info(str(len(data)) + " bytes received from " + str(addr))
 
                     with open("received_data.txt", "wb") as f:
                         f.write(data)
@@ -101,11 +106,13 @@ def reception(queue, conn, addr, sym_key, iv):
 
         except (ConnectionResetError, ConnectionAbortedError) as e:
             print("Connection error with " + str(addr) + ": " + str(e))
+            logger.error("Connection error with " + str(addr) + ": " + str(e))
             running = False
             queue.put(b'disconnected')  # Signaler la déconnexion au système
 
         except Exception as e:
             print("Unexpected error: " + str(e))
+            logger.error("Unexpected error: " + str(e))
             running = False
             queue.put(b'disconnected')  # Utiliser pour signaler une déconnexion inattendue
 

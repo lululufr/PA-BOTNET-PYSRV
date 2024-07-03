@@ -38,7 +38,7 @@ from datetime import datetime
 # Initialisation du logger
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[logging.FileHandler("botnet.log"),
+                    handlers=[logging.FileHandler(ROOT_PATH + "botnet.log"),
                               logging.StreamHandler()])
 
 logger = logging.getLogger("botnet")
