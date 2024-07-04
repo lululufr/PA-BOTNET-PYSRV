@@ -204,7 +204,10 @@ def start_server(port, logger):
 
             mycursor.execute(query, values)
 
-            victim_uid = mycursor.fetchall()[0]
+            victim_uid = mycursor.fetchall()[0][0]
+
+            print("[+] executing attack :" + str(attack))
+            print("[+] victim uid : " + str(victim_uid))
 
             # Vérification qu'on récupère un uid
             if victim_uid :
